@@ -5,9 +5,9 @@ import { Chessboard } from 'react-chessboard';
 import { Chess } from 'chess.js';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { Label } from "@/components/ui/label"
-import { initSocket } from '@/lib/socket';
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
+import { socket } from '@/lib/socket';
 import { useToast } from '@/hooks/use-toast';
 
 type GameMode = 'ranked' | 'unranked';
@@ -17,23 +17,22 @@ export default function ChessGame() {
   const [game, setGame] = useState(new Chess());
   const [gameId, setGameId] = useState('');
   const [playerColor, setPlayerColor] = useState<'white' | 'black'>('white');
+  const [isMyTurn, setIsMyTurn] = useState(true);
   const [mode, setMode] = useState<GameMode>('unranked');
   const [tier, setTier] = useState<Tier>('novice');
   const [walletAddress, setWalletAddress] = useState('');
   const [isWaiting, setIsWaiting] = useState(false);
+  
   const { toast } = useToast();
-
+  
   useEffect(() => {
-    const socket = initSocket();
-    console.log('Socket initialized');
-
     socket.on('match_found', (gameData) => {
-      console.log('Match found:', gameData);
-      setGameId(gameData.id);
+      setGameId(gameData.roomId);
       setIsWaiting(false);
       
       const isWhite = gameData.playerColors.w === walletAddress;
       setPlayerColor(isWhite ? 'white' : 'black');
+      setIsMyTurn(isWhite);
       
       toast({
         title: 'Match Found!',
@@ -41,37 +40,28 @@ export default function ChessGame() {
       });
     });
 
-    socket.on('move_made', (moveData) => {
-      console.log('Move received:', moveData);
-      try {
-        setGame(game => {
-          const newGame = new Chess(game.fen());
-          const move = newGame.move({
-            from: moveData.from,
-            to: moveData.to,
-            promotion: 'q',
-          });
-          console.log('Server move applied:', move);
-          return newGame;
-        });
-      } catch (error) {
-        console.error('Invalid move:', error);
-      }
-    });
+    socket.on('move', ({ from, to }) => {
 
-    socket.on('invalid_move', (data) => {
-      console.log('Invalid move:', data);
-      toast({
-        title: 'Invalid Move',
-        description: data.message,
-        variant: 'destructive',
+      console.log("opponent move recieved")
+      setGame((currentGame) => {
+        const newGame = new Chess(currentGame.fen());
+        try {
+          if (!newGame.get(from)) {
+            return currentGame;
+          }
+          newGame.move({ from, to });
+          setIsMyTurn(true);
+          return newGame;
+        } catch (error) {
+          console.error('Invalid move received:', error);
+          return currentGame;
+        }
       });
     });
 
     socket.on('game_ended', (data) => {
-      console.log('Game ended:', data);
       let message = 'Game Over! ';
-      if (data.result === 'disconnection') {
+      if (data.reason === 'disconnection') {
         message += 'Opponent disconnected';
       } else if (data.result === 'checkmate') {
         message += 'Checkmate!';
@@ -86,56 +76,39 @@ export default function ChessGame() {
     });
 
     return () => {
-      console.log('Cleaning up socket listeners');
       socket.off('match_found');
-      socket.off('move_made');
-      socket.off('invalid_move');
+      socket.off('move');
       socket.off('game_ended');
     };
   }, [walletAddress]);
 
   function makeMove(sourceSquare: string, targetSquare: string) {
-    console.log('Attempting move:', { sourceSquare, targetSquare });
-    const socket = initSocket();
-    
-    const currentColor = game.turn() === 'w' ? 'white' : 'black';
-    if (currentColor !== playerColor) {
-      console.log('Not player\'s turn');
-      toast({
-        title: 'Not your turn',
-        variant: 'destructive',
-      });
-      return false;
-    }
-
     try {
-      const newGame = new Chess(game.fen());
-      const move = newGame.move({
+      const move = game.move({
         from: sourceSquare,
         to: targetSquare,
-        promotion: 'q',
       });
 
       if (move) {
-        console.log('Valid move:', move);
-        setGame(newGame);
+        setGame(new Chess(game.fen()));
         socket.emit('make_move', {
           roomId: gameId,
           walletAddress,
           from: sourceSquare,
           to: targetSquare
         });
+        setIsMyTurn(false);
         return true;
       }
     } catch (error) {
-      console.error('Move error:', error);
       return false;
     }
     return false;
   }
 
   const joinLobby = () => {
-    console.log('Joining lobby:', { walletAddress, mode, tier });
+
+    console.log("join lobby called")
     if (!walletAddress) {
       toast({
         title: 'Error',
@@ -145,7 +118,6 @@ export default function ChessGame() {
       return;
     }
 
-    const socket = initSocket();
     socket.emit('join_lobby', {
       walletAddress,
       tier,
@@ -161,8 +133,6 @@ export default function ChessGame() {
 
   return (
     <div className="max-w-4xl mx-auto p-4">
-      <h1 className="text-4xl font-bold text-center mb-8">WebSocket Chess</h1>
-      
       <Card className="p-6 mb-6">
         <div className="space-y-6">
           <div>
@@ -202,26 +172,12 @@ export default function ChessGame() {
               onValueChange={(value: Tier) => setTier(value)}
               className="flex flex-col space-y-2"
             >
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="novice" id="novice" />
-                <Label htmlFor="novice">Novice</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="amateur" id="amateur" />
-                <Label htmlFor="amateur">Amateur</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="pro" id="pro" />
-                <Label htmlFor="pro">Pro</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="expert" id="expert" />
-                <Label htmlFor="expert">Expert</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="grandmaster" id="grandmaster" />
-                <Label htmlFor="grandmaster">Grandmaster</Label>
-              </div>
+              {['novice', 'amateur', 'pro', 'expert', 'grandmaster'].map((t) => (
+                <div key={t} className="flex items-center space-x-2">
+                  <RadioGroupItem value={t} id={t} />
+                  <Label htmlFor={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</Label>
+                </div>
+              ))}
               {mode === 'unranked' && (
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="open" id="open" />
@@ -239,12 +195,6 @@ export default function ChessGame() {
             {isWaiting ? 'Waiting for opponent...' : 'Find Match'}
           </Button>
         </div>
-
-        {gameId && (
-          <p className="text-sm text-muted-foreground mt-4">
-            Game ID: {gameId}
-          </p>
-        )}
       </Card>
       
       <div className="aspect-square max-w-2xl mx-auto">
@@ -252,6 +202,7 @@ export default function ChessGame() {
           position={game.fen()}
           onPieceDrop={makeMove}
           boardOrientation={playerColor}
+          arePiecesDraggable={isMyTurn}
         />
       </div>
       

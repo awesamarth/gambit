@@ -1,22 +1,17 @@
-const { createServer } = require('http');
-const { Server } = require('socket.io');
-const next = require('next');
+import { createServer } from "node:http";
+import next from "next";
+import { Server } from "socket.io";
 
-const dev = process.env.NODE_ENV !== 'production';
-const app = next({ dev });
-const handle = app.getRequestHandler();
+const dev = process.env.NODE_ENV !== "production";
+const hostname = "localhost";
+const port = process.env.PORT || 3000;
+
+const app = next({ dev, hostname, port });
+const handler = app.getRequestHandler();
 
 app.prepare().then(() => {
-  const server = createServer((req, res) => {
-    handle(req, res);
-  });
-
-  const io = new Server(server, {
-    cors: {
-      origin: '*',
-      methods: ['GET', 'POST'],
-    },
-  });
+  const httpServer = createServer(handler);
+  const io = new Server(httpServer);
 
   // Data structures
   const games = new Map();
@@ -47,11 +42,12 @@ app.prepare().then(() => {
     grandmaster: 200
   };
 
-  io.on('connection', (socket) => {
-    console.log('Client connected:', socket.id);
+  io.on("connection", (socket) => {
+    console.log("Client connected:", socket.id);
 
-    socket.on('join_lobby', ({ walletAddress, tier, rankedOrUnranked }) => {
-      console.log('Join lobby request:', { walletAddress, tier, rankedOrUnranked });
+    socket.on("join_lobby", ({ walletAddress, tier, rankedOrUnranked }) => {
+      console.log("join lobby received")
+      console.log("Join lobby request:", { walletAddress, tier, rankedOrUnranked });
       
       socket.walletAddress = walletAddress;
       walletToSocket.set(walletAddress, socket);
@@ -63,19 +59,15 @@ app.prepare().then(() => {
         waitingList.push(walletAddress);
       }
 
-      console.log('Current waiting list:', waitingList);
-
       // Match players if enough are waiting
       if (waitingList.length >= 2) {
         const player1 = waitingList.shift();
         const player2 = waitingList.shift();
-        const gameId = `${rankedOrUnranked}_${tier}_${Date.now()}`;
-
-        console.log('Creating game:', { gameId, player1, player2 });
+        const roomId = `${rankedOrUnranked}_${tier}_${Date.now()}`;
 
         // Create game
-        games.set(gameId, {
-          id: gameId,
+        games.set(roomId, {
+          roomId,
           mode: rankedOrUnranked,
           tier,
           wager: rankedOrUnranked === 'ranked' ? rankedWagers[tier] : 0,
@@ -93,65 +85,49 @@ app.prepare().then(() => {
         const player2Socket = walletToSocket.get(player2);
 
         if (player1Socket && player2Socket) {
-          player1Socket.join(gameId);
-          player2Socket.join(gameId);
-          io.to(gameId).emit('match_found', games.get(gameId));
+          player1Socket.join(roomId);
+          player2Socket.join(roomId);
+          io.to(roomId).emit('match_found', games.get(roomId));
         }
       }
     });
 
-    socket.on('make_move', ({ roomId, walletAddress, from, to }) => {
-      console.log('Move request:', { roomId, walletAddress, from, to });
-      
+    socket.on("make_move", ({ roomId, walletAddress, from, to }) => {
+
+      console.log("make move received from client")
+      console.log("games are: ", games)
+      console.log("roomId received:", roomId);  // Add this
+
       const game = games.get(roomId);
       if (!game) {
-        console.log('Game not found:', roomId);
-        return;
-      }
+        console.log("no game")
+        return
+      };
 
-      // Validate it's the player's turn
-      if (walletAddress !== game.playerColors[game.currentTurn]) {
-        console.log('Not player\'s turn');
-        socket.emit('invalid_move', { message: 'Not your turn' });
-        return;
-      }
 
       // Update game state
-      game.moves.push({ from, to, color: game.currentTurn });
+      game.moves.push({
+        from,
+        to,
+        color: game.currentTurn,
+        player: walletAddress
+      });
+
+      // Switch turns
       game.currentTurn = game.currentTurn === 'w' ? 'b' : 'w';
 
-      // Broadcast move to both players
-      io.to(roomId).emit('move_made', {
+      console.log("game is currently: ", game)
+
+      // Broadcast move to room
+      io.in(roomId).emit('move', {
         from,
         to,
         color: game.currentTurn === 'w' ? 'b' : 'w',
-        whoseTurn: game.currentTurn,
-        nextPlayer: game.playerColors[game.currentTurn]
+        whoseTurn: game.currentTurn
       });
     });
 
-    socket.on('game_end', ({ roomId, result, winner }) => {
-      console.log('Game end:', { roomId, result, winner });
-      
-      const game = games.get(roomId);
-      if (!game) return;
-
-      game.gameStatus = 'ended';
-      game.winner = winner;
-
-      io.to(roomId).emit('game_ended', {
-        result,
-        winner,
-        finalMove: game.moves[game.moves.length - 1]
-      });
-
-      // Clean up
-      games.delete(roomId);
-    });
-
-    socket.on('disconnect', () => {
-      console.log('Client disconnected:', socket.id);
-      
+    socket.on("disconnect", () => {
       // Remove from waiting lists
       Object.values(waitingPlayers).forEach(modes => {
         Object.values(modes).forEach(tier => {
@@ -163,26 +139,64 @@ app.prepare().then(() => {
       });
 
       // Handle active games
-      games.forEach((game, gameId) => {
+      games.forEach((game, roomId) => {
         if (Object.values(game.playerColors).includes(socket.walletAddress)) {
           const winner = game.playerColors.w === socket.walletAddress ? 
             game.playerColors.b : game.playerColors.w;
 
-          io.to(gameId).emit('game_ended', {
-            result: 'disconnection',
+          io.to(roomId).emit('game_ended', {
+            reason: 'disconnection',
             winner
           });
 
-          games.delete(gameId);
+          games.delete(roomId);
         }
       });
 
       walletToSocket.delete(socket.walletAddress);
     });
+
+    // Game end conditions
+    socket.on("game_end", ({ roomId, result, winner }) => {
+      const game = games.get(roomId);
+      if (!game) return;
+
+      game.gameStatus = "ended";
+      game.winner = winner;
+
+      io.to(roomId).emit('game_ended', {
+        result,
+        winner,
+        finalMove: game.moves[game.moves.length - 1]
+      });
+
+      // Clean up the game
+      games.delete(roomId);
+    });
+
+    // Resign handler
+    socket.on("resign", ({ roomId, walletAddress }) => {
+      const game = games.get(roomId);
+      if (!game) return;
+
+      const winner = walletAddress === game.playerColors.w ?
+        game.playerColors.b : game.playerColors.w;
+
+      io.to(roomId).emit('game_ended', {
+        result: 'resignation',
+        winner
+      });
+
+      games.delete(roomId);
+    });
   });
 
-  server.listen(3000, (err) => {
-    if (err) throw err;
-    console.log('> Ready on http://localhost:3000');
+  httpServer.once("error", (err) => {
+    console.error(err);
+    process.exit(1);
+  });
+
+  httpServer.listen(port, () => {
+    console.log(`> Ready on http://${hostname}:${port}`);
   });
 });

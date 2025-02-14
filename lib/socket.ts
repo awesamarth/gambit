@@ -1,12 +1,5 @@
-import { io, Socket } from 'socket.io-client';
+"use client";
 
-let socket: Socket;
+import { io } from "socket.io-client";
 
-export const initSocket = () => {
-  if (!socket) {
-    socket = io('http://localhost:3000');
-  }
-  return socket;
-};
-
-export const getSocket = () => socket;
+export const socket = io();
