@@ -8,7 +8,7 @@ const port = process.env.PORT || 3000;
 
 const app = next({ dev, hostname, port });
 const handler = app.getRequestHandler();
-
+  
 app.prepare().then(() => {
   const httpServer = createServer(handler);
   const io = new Server(httpServer);
