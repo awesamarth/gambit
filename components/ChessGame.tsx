@@ -2,13 +2,14 @@
 
 import { useState, useEffect } from 'react';
 import { Chessboard } from 'react-chessboard';
-import { Chess } from 'chess.js';
+import { Chess, Square } from 'chess.js';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { socket } from '@/lib/socket';
 import { useToast } from '@/hooks/use-toast';
+import { Piece } from 'react-chessboard/dist/chessboard/types';
 
 type GameMode = 'ranked' | 'unranked';
 type Tier = 'novice' | 'amateur' | 'pro' | 'expert' | 'grandmaster' | 'open';
@@ -40,7 +41,7 @@ export default function ChessGame() {
       });
     });
 
-    socket.on('move', ({ from, to }) => {
+    socket.on('move', ({ from, to, promotion  }) => {
 
       console.log("opponent move recieved")
       setGame((currentGame) => {
@@ -49,7 +50,7 @@ export default function ChessGame() {
           if (!newGame.get(from)) {
             return currentGame;
           }
-          newGame.move({ from, to });
+          newGame.move({ from, to, promotion });
           setIsMyTurn(true);
           return newGame;
         } catch (error) {
@@ -82,30 +83,32 @@ export default function ChessGame() {
     };
   }, [walletAddress]);
 
-  function makeMove(sourceSquare: string, targetSquare: string) {
-    try {
-      const move = game.move({
+function makeMove(sourceSquare: Square, targetSquare: Square, piece: Piece) {
+  try {
+    const move = game.move({
+      from: sourceSquare,
+      to: targetSquare,
+      promotion: piece[1]?.toLowerCase() // This gets the piece type from notation like 'wQ' or 'bQ'
+    });
+
+    if (move) {
+      setGame(new Chess(game.fen()));
+      socket.emit('make_move', {
+        roomId: gameId,
+        walletAddress,
         from: sourceSquare,
         to: targetSquare,
+        piece: piece,
+        promotion: move.promotion
       });
-
-      if (move) {
-        setGame(new Chess(game.fen()));
-        socket.emit('make_move', {
-          roomId: gameId,
-          walletAddress,
-          from: sourceSquare,
-          to: targetSquare
-        });
-        setIsMyTurn(false);
-        return true;
-      }
-    } catch (error) {
-      return false;
+      setIsMyTurn(false);
+      return true;
     }
+  } catch (error) {
     return false;
   }
-
+  return false;
+}
   const joinLobby = () => {
 
     console.log("join lobby called")
@@ -132,70 +135,8 @@ export default function ChessGame() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-4">
-      <Card className="p-6 mb-6">
-        <div className="space-y-6">
-          <div>
-            <Label htmlFor="wallet">Wallet Address</Label>
-            <input
-              id="wallet"
-              type="text"
-              placeholder="Enter wallet address"
-              value={walletAddress}
-              onChange={(e) => setWalletAddress(e.target.value)}
-              className="w-full p-2 border rounded mt-1"
-            />
-          </div>
+    <div className="max-w-4xl mx-auto p-4 ">
 
-          <div className="space-y-4">
-            <Label>Game Mode</Label>
-            <RadioGroup 
-              value={mode} 
-              onValueChange={(value: GameMode) => setMode(value)}
-              className="flex flex-col space-y-2"
-            >
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="ranked" id="ranked" />
-                <Label htmlFor="ranked">Ranked</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="unranked" id="unranked" />
-                <Label htmlFor="unranked">Unranked</Label>
-              </div>
-            </RadioGroup>
-          </div>
-
-          <div className="space-y-4">
-            <Label>Tier</Label>
-            <RadioGroup 
-              value={tier} 
-              onValueChange={(value: Tier) => setTier(value)}
-              className="flex flex-col space-y-2"
-            >
-              {['novice', 'amateur', 'pro', 'expert', 'grandmaster'].map((t) => (
-                <div key={t} className="flex items-center space-x-2">
-                  <RadioGroupItem value={t} id={t} />
-                  <Label htmlFor={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</Label>
-                </div>
-              ))}
-              {mode === 'unranked' && (
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="open" id="open" />
-                  <Label htmlFor="open">Open</Label>
-                </div>
-              )}
-            </RadioGroup>
-          </div>
-
-          <Button 
-            onClick={joinLobby}
-            disabled={isWaiting}
-            className="w-full"
-          >
-            {isWaiting ? 'Waiting for opponent...' : 'Find Match'}
-          </Button>
-        </div>
-      </Card>
       
       <div className="aspect-square max-w-2xl mx-auto">
         <Chessboard
@@ -203,6 +144,8 @@ export default function ChessGame() {
           onPieceDrop={makeMove}
           boardOrientation={playerColor}
           arePiecesDraggable={isMyTurn}
+          
+
         />
       </div>
       

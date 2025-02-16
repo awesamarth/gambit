@@ -8,13 +8,15 @@ const port = process.env.PORT || 3000;
 
 const app = next({ dev, hostname, port });
 const handler = app.getRequestHandler();
-  
+
 app.prepare().then(() => {
   const httpServer = createServer(handler);
   const io = new Server(httpServer);
 
   // Data structures
   const games = new Map();
+  const challenges = new Map(); // Only public challenges
+
   const waitingPlayers = {
     ranked: {
       novice: [],
@@ -45,15 +47,59 @@ app.prepare().then(() => {
   io.on("connection", (socket) => {
     console.log("Client connected:", socket.id);
 
+    socket.on("create_room", ({walletAddress, tier, wager, isChallenge}) => {
+      socket.walletAddress = walletAddress;
+      walletToSocket.set(walletAddress, socket);
+  
+      const roomId = `${isChallenge ? 'challenge' : 'private'}_${tier}_${Date.now()}`
+      const roomData = {
+          roomId,
+          mode: "unranked",
+          tier,
+          wager,
+          playerColors: {
+              'w': walletAddress,
+              'b': ""
+          },
+          moves: [],
+          currentTurn: 'w',
+          gameStatus: 'waiting',
+          winner: ""
+      };
+  
+      // Store in appropriate map(s)
+      games.set(roomId, roomData);
+      socket.join(roomId);
+
+      if (isChallenge) {
+          challenges.set(roomId, roomData);
+          // Broadcast to all clients
+          io.emit('challenge_created', { roomId, tier, wager });
+      } else {
+          // Only tell the creator
+          socket.emit('private_room_created', { roomId });
+      }
+  
+  });
+
+    socket.on("join_challenge", ({walletAddress, roomId})=>{
+
+    })
+
+    socket.on("join_private_room", ({walletAddress, roomId})=>{
+      
+
+    })
+
     socket.on("join_lobby", ({ walletAddress, tier, rankedOrUnranked }) => {
       console.log("join lobby received")
       console.log("Join lobby request:", { walletAddress, tier, rankedOrUnranked });
-      
+
       socket.walletAddress = walletAddress;
       walletToSocket.set(walletAddress, socket);
 
       const waitingList = waitingPlayers[rankedOrUnranked][tier];
-      
+
       // Don't add if already in queue
       if (!waitingList.includes(walletAddress)) {
         waitingList.push(walletAddress);
@@ -77,7 +123,8 @@ app.prepare().then(() => {
           },
           moves: [],
           currentTurn: 'w',
-          gameStatus: 'started'
+          gameStatus: 'started',
+          winner:""
         });
 
         // Join players to game room
@@ -92,7 +139,7 @@ app.prepare().then(() => {
       }
     });
 
-    socket.on("make_move", ({ roomId, walletAddress, from, to }) => {
+    socket.on("make_move", ({ roomId, walletAddress, from, to, piece, promotion }) => {
 
       console.log("make move received from client")
       console.log("games are: ", games)
@@ -110,7 +157,9 @@ app.prepare().then(() => {
         from,
         to,
         color: game.currentTurn,
-        player: walletAddress
+        player: walletAddress,
+        piece,
+        promotion
       });
 
       // Switch turns
@@ -123,7 +172,8 @@ app.prepare().then(() => {
         from,
         to,
         color: game.currentTurn === 'w' ? 'b' : 'w',
-        whoseTurn: game.currentTurn
+        whoseTurn: game.currentTurn,
+        promotion 
       });
     });
 
@@ -141,7 +191,7 @@ app.prepare().then(() => {
       // Handle active games
       games.forEach((game, roomId) => {
         if (Object.values(game.playerColors).includes(socket.walletAddress)) {
-          const winner = game.playerColors.w === socket.walletAddress ? 
+          const winner = game.playerColors.w === socket.walletAddress ?
             game.playerColors.b : game.playerColors.w;
 
           io.to(roomId).emit('game_ended', {
@@ -170,6 +220,8 @@ app.prepare().then(() => {
         finalMove: game.moves[game.moves.length - 1]
       });
 
+
+      //gonna implement ranked rating adjustment logic here soon along with any wagers etc too.
       // Clean up the game
       games.delete(roomId);
     });
