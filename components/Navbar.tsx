@@ -1,12 +1,10 @@
 // components/Navbar.tsx
-'use client';
-
 import Link from 'next/link';
 import Image from 'next/image';
 
 export default function Navbar() {
   return (
-    <nav className="w-full h-[75px] bg-[#3B2A0A] absolute px-6 flex items-center justify-between">
+    <nav className="w-full h-[75px] bg-[#3B2A0A] absolute top-0 px-6 flex items-center justify-between">
       {/* Logo/Brand */}
       <Link href="/" className="text-white text-3xl font-bold">
         Gambit
@@ -20,7 +18,7 @@ export default function Navbar() {
       {/* Stats/Currency Display */}
       <div className="flex items-center gap-8  rounded-full  py-2">
       <Link 
-          href="/play" 
+          href="/modes" 
           className="bg-[#906810] px-6 py-1 rounded-md text-white text-xl hover:bg-[#A77812] transition-colors"
         >
           Play

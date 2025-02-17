@@ -1,121 +1,72 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Chessboard } from 'react-chessboard';
-import { Chess } from 'chess.js';
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { socket } from '@/lib/socket';
 import { useToast } from '@/hooks/use-toast';
+import { useRouter } from 'next/navigation';
 
-export default function ChessGame() {
-  const [game, setGame] = useState(new Chess());
-  const [gameId, setGameId] = useState('');
+export default function PrivateRoom() {
   const [inputGameId, setInputGameId] = useState('');
-  const [playerColor, setPlayerColor] = useState<'white' | 'black'>('white');
+  const [walletAddress, setWalletAddress] = useState(''); 
   const { toast } = useToast();
-  
-  useEffect(() => {
-
-    socket.on('gameState', (gameState) => {
-      if (gameState.players.length === 2) {
-        const playerIndex = gameState.players.indexOf(socket.id);
-        setPlayerColor(playerIndex === 0 ? 'white' : 'black');
-        toast({
-          title: 'Game Started!',
-          description: `You are playing as ${playerIndex === 0 ? 'white' : 'black'}`,
-        });
-      }
-    });
-
-    socket.on('move', ({ from, to }) => {
-      setGame((currentGame) => {
-        const newGame = new Chess(currentGame.fen());
-        try {
-          newGame.move({ from, to, promotion: 'q' });
-          return newGame;
-        } catch (error) {
-          console.error('Invalid move received:', error);
-          return currentGame;
-        }
-      });
-    });
-
-    return () => {
-      socket.off('gameState');
-      socket.off('move');
-    };
-  }, []);
-
-  function makeMove(sourceSquare: string, targetSquare: string) {
-    try {
-      const move = game.move({
-        from: sourceSquare,
-        to: targetSquare,
-        promotion: 'q',
-      });
-
-      if (move) {
-        setGame(new Chess(game.fen()));
-        socket.emit('move', { gameId, from: sourceSquare, to: targetSquare });
-        return true;
-      }
-    } catch (error) {
-      return false;
-    }
-    return false;
-  }
+  const router = useRouter();
 
   const createGame = () => {
-    const newGameId = Math.random().toString(36).substring(7);
-    setGameId(newGameId);
-    socket.emit('createGame', newGameId);
-    toast({
-      title: 'Game Created',
-      description: `Share this game ID with your opponent: ${newGameId}`,
+    socket.emit('create_room', {
+      walletAddress,
+      tier: 'open',
+      wager: 0,
+      isChallenge: false
     });
   };
 
   const joinGame = () => {
-    socket.emit('joinGame', inputGameId);
-    setGameId(inputGameId);
+
+    console.log("join game clicked")
+
+    socket.emit('join_room', {
+      walletAddress,
+      roomId: inputGameId
+    });
   };
 
+  useEffect(() => {
+    socket.on('private_room_created', ({ roomId }) => {
+      toast({
+        title: 'Room Created',
+        description: `Share this room ID with your opponent: ${roomId}`,
+      });
+
+      console.log("ye dekh room id: ", roomId)
+      // router.push(`/game/${roomId}`);
+    });
+
+    socket.on('match_found', (gameData) => {
+      router.push(`/game/${gameData.roomId}`);
+    });
+
+    return () => {
+      socket.off('private_room_created');
+      socket.off('match_found');
+    };
+  }, [router]);
+
   return (
-    <div className="max-w-4xl mx-auto ">
-      <Card className="p-6 mb-6 " >
-        <div className="flex gap-4 mb-6 mt-[75px]">
+    <div className="max-w-4xl mt-[75px] mx-auto">
+      <Card className="p-24 mt-12`    mb-6">
+        <div className="flex gap-4 mb-6 ">
           <Input
-            placeholder="Enter game ID to join"
+            placeholder="Enter room ID to join"
             value={inputGameId}
             onChange={(e) => setInputGameId(e.target.value)}
           />
           <Button onClick={joinGame}>Join Game</Button>
           <Button onClick={createGame}>Create New Game</Button>
         </div>
-        {gameId && (
-          <p className="text-sm text-muted-foreground mb-4">
-            Game ID: {gameId}
-          </p>
-        )}
       </Card>
-      
-      <div className="aspect-square max-w-2xl mx-auto">
-        <Chessboard
-          position={game.fen()}
-          onPieceDrop={makeMove}
-          boardOrientation={playerColor}
-        />
-      </div>
-      
-      {game.isGameOver() && (
-        <div className="mt-6 text-center">
-          <h2 className="text-2xl font-bold">
-            Game Over! {game.isCheckmate() ? 'Checkmate!' : 'Draw!'}
-          </h2>
-        </div>
-      )}
     </div>
   );
 }

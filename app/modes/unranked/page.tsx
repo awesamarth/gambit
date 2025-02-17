@@ -6,6 +6,7 @@ import { Card } from '@/components/ui/card';
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { useState } from 'react';
+import { socket } from '@/lib/socket';
 
 
 export default function Home() {
@@ -17,6 +18,24 @@ export default function Home() {
   const [walletAddress, setWalletAddress] = useState('');
   const [isWaiting, setIsWaiting] = useState(false);  
 
+  const joinLobby = () => {
+
+    console.log("join lobby called")
+    if (!walletAddress) {
+      console.log("address hi nahi hai bc")
+      return;
+    }
+
+    socket.emit('join_lobby', {
+      walletAddress,
+      tier,
+      rankedOrUnranked: mode
+    });
+    
+    setIsWaiting(true);
+   
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-8">
@@ -25,6 +44,7 @@ export default function Home() {
         <div className="space-y-6">
           <div>
             <Label htmlFor="wallet">Wallet Address</Label>
+            
             <input
               id="wallet"
               type="text"
@@ -35,19 +55,6 @@ export default function Home() {
             />
           </div>
 
-          <div className="space-y-4">
-            <Label>Game Mode</Label>
-            <RadioGroup 
-              value={mode} 
-              onValueChange={(value: GameMode) => setMode(value)}
-              className="flex flex-col space-y-2"
-            >
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="unranked" id="unranked" />
-                <Label htmlFor="unranked">Unranked</Label>
-              </div>
-            </RadioGroup>
-          </div>
 
           <div className="space-y-4">
             <Label>Tier</Label>
@@ -72,7 +79,7 @@ export default function Home() {
           </div>
 
           <Button 
-            // onClick={joinLobby}
+            onClick={joinLobby}
             disabled={isWaiting}
             className="w-full"
           >
@@ -80,7 +87,6 @@ export default function Home() {
           </Button>
         </div>
       </Card>
-        <ChessGame />
         </div>
       </div>
     </div>

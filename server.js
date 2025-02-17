@@ -47,49 +47,21 @@ app.prepare().then(() => {
   io.on("connection", (socket) => {
     console.log("Client connected:", socket.id);
 
-    socket.on("create_room", ({walletAddress, tier, wager, isChallenge}) => {
-      socket.walletAddress = walletAddress;
-      walletToSocket.set(walletAddress, socket);
-  
-      const roomId = `${isChallenge ? 'challenge' : 'private'}_${tier}_${Date.now()}`
-      const roomData = {
-          roomId,
-          mode: "unranked",
-          tier,
-          wager,
-          playerColors: {
-              'w': walletAddress,
-              'b': ""
-          },
-          moves: [],
-          currentTurn: 'w',
-          gameStatus: 'waiting',
-          winner: ""
-      };
-  
-      // Store in appropriate map(s)
-      games.set(roomId, roomData);
-      socket.join(roomId);
 
-      if (isChallenge) {
-          challenges.set(roomId, roomData);
-          // Broadcast to all clients
-          io.emit('challenge_created', { roomId, tier, wager });
-      } else {
-          // Only tell the creator
-          socket.emit('private_room_created', { roomId });
-      }
-  
-  });
 
-    socket.on("join_challenge", ({walletAddress, roomId})=>{
+    socket.on("join_room", ({ walletAddress, roomId }) => {
+      const game = games.get(roomId);
+      if (!game) return;
 
-    })
-
-    socket.on("join_private_room", ({walletAddress, roomId})=>{
       
+      // Update black player's wallet address
+      game.playerColors.b = walletAddress;
+      console.log(game)
 
-    })
+      socket.join(roomId);
+      io.to(roomId).emit('match_found', game);
+    });
+
 
     socket.on("join_lobby", ({ walletAddress, tier, rankedOrUnranked }) => {
       console.log("join lobby received")
@@ -124,7 +96,7 @@ app.prepare().then(() => {
           moves: [],
           currentTurn: 'w',
           gameStatus: 'started',
-          winner:""
+          winner: ""
         });
 
         // Join players to game room
@@ -137,6 +109,41 @@ app.prepare().then(() => {
           io.to(roomId).emit('match_found', games.get(roomId));
         }
       }
+    });
+
+    socket.on("create_room", ({ walletAddress, tier, wager, isChallenge }) => {
+      socket.walletAddress = walletAddress;
+      walletToSocket.set(walletAddress, socket);
+
+      const roomId = `${isChallenge ? 'challenge' : 'private'}_${tier}_${Date.now()}`
+      const roomData = {
+        roomId,
+        mode: "unranked",
+        tier,
+        wager,
+        playerColors: {
+          'w': walletAddress,
+          'b': ""
+        },
+        moves: [],
+        currentTurn: 'w',
+        gameStatus: 'waiting',
+        winner: ""
+      };
+
+      // Store in appropriate map(s)
+      games.set(roomId, roomData);
+      socket.join(roomId);
+
+      if (isChallenge) {
+        challenges.set(roomId, roomData);
+        // Broadcast to all clients
+        io.emit('challenge_created', { roomId, tier, wager });
+      } else {
+        // Only tell the creator
+        socket.emit('private_room_created', { roomId });
+      }
+
     });
 
     socket.on("make_move", ({ roomId, walletAddress, from, to, piece, promotion }) => {
@@ -173,7 +180,7 @@ app.prepare().then(() => {
         to,
         color: game.currentTurn === 'w' ? 'b' : 'w',
         whoseTurn: game.currentTurn,
-        promotion 
+        promotion
       });
     });
 

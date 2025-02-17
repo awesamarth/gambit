@@ -14,7 +14,7 @@ export default function ModesPage() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 max-w-6xl mx-auto">
                     {/* Ranked Mode */}
-                    <Link href="/play/ranked">
+                    <Link href="/modes/ranked">
                         <div className="bg-gradient-to-b from-[#906810] to-[#744D0B] rounded-lg p-6 h-[300px] 
                           flex flex-col items-center justify-center gap-4
                           hover:scale-105 transition-all cursor-pointer
@@ -27,7 +27,7 @@ export default function ModesPage() {
                         </div>
                     </Link>
                     {/* Arena Mode */}
-                    <Link href="/play/arena">
+                    <Link href="/modes/arena">
                         <div className="bg-gradient-to-b from-[#C4A256] to-[#9E7F36] rounded-lg p-6 h-[300px] 
                           flex flex-col items-center justify-center gap-4
                           hover:scale-105 transition-all cursor-pointer
@@ -41,7 +41,7 @@ export default function ModesPage() {
                     </Link>
 
                     {/* Unranked Mode */}
-                    <Link href="/play/unranked">
+                    <Link href="/modes/unranked">
                         <div className="bg-gradient-to-b from-[#363636] to-[#2A2A2A] rounded-lg p-6 h-[300px] 
                           flex flex-col items-center justify-center gap-4
                           hover:scale-105 transition-all cursor-pointer
@@ -57,7 +57,7 @@ export default function ModesPage() {
 
 
                     {/* Private Room */}
-                    <Link href="/play/private">
+                    <Link href="/modes/private">
                         <div className="bg-gradient-to-b from-[#363636] to-[#2A2A2A] rounded-lg p-6 h-[300px] 
                           flex flex-col items-center justify-center gap-4
                           hover:scale-105 transition-all cursor-pointer
