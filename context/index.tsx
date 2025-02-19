@@ -30,6 +30,10 @@ const modal = createAppKit({
   defaultNetwork: mainnet,
   metadata: metadata,
   features: {
+    socials:['google'],
+  },
+  themeVariables:{
+    '--w3m-accent': '#A77812'
   },
   themeMode:'dark'
 })
