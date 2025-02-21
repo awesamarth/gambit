@@ -2,12 +2,15 @@
 // components/Navbar.tsx
 import Link from 'next/link';
 import Image from 'next/image';
-import { useAccount } from 'wagmi';
+import { useAccount, useChains } from 'wagmi';
 
 export default function Navbar() {
   const {address} = useAccount()
+  const chains = useChains()
+  
 
   console.log(address)
+  console.log(chains)
   return (
     <nav className="w-full h-[75px] bg-[#3B2A0A] absolute top-0 px-6 flex items-center justify-between">
       {/* Logo/Brand */}

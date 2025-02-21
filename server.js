@@ -104,6 +104,8 @@ app.prepare().then(() => {
         const player2Socket = walletToSocket.get(player2);
 
         if (player1Socket && player2Socket) {
+
+          console.log("match found")
           player1Socket.join(roomId);
           player2Socket.join(roomId);
           io.to(roomId).emit('match_found', games.get(roomId));
