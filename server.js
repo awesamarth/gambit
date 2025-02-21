@@ -54,7 +54,6 @@ app.prepare().then(() => {
       if (!game) return;
 
       
-      // Update black player's wallet address
       game.playerColors.b = walletAddress;
       console.log(game)
 
@@ -113,6 +112,27 @@ app.prepare().then(() => {
       }
     });
 
+    socket.on("get_game_data", ({ roomId, walletAddress }) => {
+      const game = games.get(roomId);
+
+      console.log("ye dekh game", game)
+      if (!game) {
+        socket.emit('game_data', { error: 'Game not found' });
+        return;
+      }
+      
+      // Store the wallet address for this socket
+      socket.walletAddress = walletAddress;
+      walletToSocket.set(walletAddress, socket);
+      
+      // Join the room
+      socket.join(roomId);
+      
+      // Send the game data
+      socket.emit('game_data', game);
+    });
+
+
     socket.on("create_room", ({ walletAddress, tier, wager, isChallenge }) => {
       socket.walletAddress = walletAddress;
       walletToSocket.set(walletAddress, socket);
@@ -151,8 +171,8 @@ app.prepare().then(() => {
     socket.on("make_move", ({ roomId, walletAddress, from, to, piece, promotion }) => {
 
       console.log("make move received from client")
-      console.log("games are: ", games)
-      console.log("roomId received:", roomId);  // Add this
+      // console.log("games are: ", games)
+      // console.log("roomId received:", roomId);  // Add this
 
       const game = games.get(roomId);
       if (!game) {
