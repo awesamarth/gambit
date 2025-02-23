@@ -80,7 +80,7 @@ app.prepare().then(() => {
       if (waitingList.length >= 2) {
         const player1 = waitingList.shift();
         const player2 = waitingList.shift();
-        const roomId = `${rankedOrUnranked}_${tier}_${Date.now()}`;
+        const roomId = Date.now().toString();
 
         // Create game
         games.set(roomId, {
@@ -93,6 +93,7 @@ app.prepare().then(() => {
             'b': player2
           },
           moves: [],
+          compactHistory:"",
           currentTurn: 'w',
           gameStatus: 'started',
           winner: ""
@@ -113,7 +114,9 @@ app.prepare().then(() => {
     });
 
     socket.on("get_game_data", ({ roomId, walletAddress }) => {
-      const game = games.get(roomId);
+      console.log("room id idhar hai", roomId)
+      console.log("saare games idhar hain", games)
+      const game = games.get(roomId.toString());
 
       console.log("ye dekh game", game)
       if (!game) {
@@ -137,7 +140,7 @@ app.prepare().then(() => {
       socket.walletAddress = walletAddress;
       walletToSocket.set(walletAddress, socket);
 
-      const roomId = `${isChallenge ? 'challenge' : 'private'}_${tier}_${Date.now()}`
+      const roomId = Date.now().toString();
       const roomData = {
         roomId,
         mode: "unranked",
@@ -148,6 +151,7 @@ app.prepare().then(() => {
           'b': ""
         },
         moves: [],
+        compactHistory:"",
         currentTurn: 'w',
         gameStatus: 'waiting',
         winner: ""
@@ -191,10 +195,18 @@ app.prepare().then(() => {
         promotion
       });
 
+      console.log("from", from)
+      console.log("to", to)
+      game.compactHistory += from + to;
+  
+      // Add promotion piece if there is one
+      if (promotion) {
+        game.compactHistory += promotion.toUpperCase();
+      }
+
       // Switch turns
       game.currentTurn = game.currentTurn === 'w' ? 'b' : 'w';
 
-      console.log("game is currently: ", game)
 
       // Broadcast move to room
       io.in(roomId).emit('move', {
@@ -237,11 +249,16 @@ app.prepare().then(() => {
 
     // Game end conditions
     socket.on("game_end", ({ roomId, result, winner }) => {
+
+      console.log("game_end event received from client")
       const game = games.get(roomId);
       if (!game) return;
 
       game.gameStatus = "ended";
       game.winner = winner;
+
+      console.log("Compact game history:", game.compactHistory);
+
 
       io.to(roomId).emit('game_ended', {
         result,

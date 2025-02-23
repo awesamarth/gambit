@@ -10,7 +10,6 @@ export default function Navbar() {
   
 
   console.log(address)
-  console.log(chains)
   return (
     <nav className="w-full h-[75px] bg-[#3B2A0A] absolute top-0 px-6 flex items-center justify-between">
       {/* Logo/Brand */}
