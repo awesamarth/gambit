@@ -50,12 +50,14 @@ app.prepare().then(() => {
 
 
     socket.on("join_room", ({ walletAddress, roomId }) => {
+      console.log("join room received from client")
       const game = games.get(roomId);
+
       if (!game) return;
 
       
       game.playerColors.b = walletAddress;
-      console.log(game)
+      console.log("game is here ", game)
 
       socket.join(roomId);
       io.to(roomId).emit('match_found', game);
@@ -137,6 +139,7 @@ app.prepare().then(() => {
 
 
     socket.on("create_room", ({ walletAddress, tier, wager, isChallenge }) => {
+      console.log("create  room received")
       socket.walletAddress = walletAddress;
       walletToSocket.set(walletAddress, socket);
 
@@ -161,12 +164,14 @@ app.prepare().then(() => {
       games.set(roomId, roomData);
       socket.join(roomId);
 
+
       if (isChallenge) {
         challenges.set(roomId, roomData);
         // Broadcast to all clients
         io.emit('challenge_created', { roomId, tier, wager });
       } else {
         // Only tell the creator
+        console.log("emitting private room created")
         socket.emit('private_room_created', { roomId });
       }
 
