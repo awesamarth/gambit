@@ -138,6 +138,19 @@ app.prepare().then(() => {
     });
 
 
+    socket.on("get_challenges", () => {
+      console.log("Client requested available challenges");
+      
+      // Convert challenges Map to an array
+      const availableChallenges = Array.from(challenges.values()).filter(challenge => 
+        challenge.gameStatus === 'waiting' && challenge.playerColors.b === ""
+      );
+      
+      // Send the challenges back to the client
+      socket.emit('challenges_list', availableChallenges);
+      
+      console.log(`Sent ${availableChallenges.length} available challenges to client`);
+    });
     socket.on("create_room", ({ walletAddress, tier, wager, isChallenge }) => {
       console.log("create  room received")
       socket.walletAddress = walletAddress;
@@ -164,11 +177,10 @@ app.prepare().then(() => {
       games.set(roomId, roomData);
       socket.join(roomId);
 
-
       if (isChallenge) {
         challenges.set(roomId, roomData);
-        // Broadcast to all clients
-        io.emit('challenge_created', { roomId, tier, wager });
+        // Broadcast the full challenge data to all clients
+        io.emit('challenge_created', roomData);
       } else {
         // Only tell the creator
         console.log("emitting private room created")
