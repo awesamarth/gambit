@@ -1,30 +1,46 @@
 'use client'
-import ChessGame from '@/components/ChessGame';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Label } from "@/components/ui/label";
 import { useEffect, useState } from 'react';
 import { getTierFromRating, Tier } from '@/utils';
-import { useAccount } from 'wagmi';
+import { useAccount, useReadContract } from 'wagmi';
 import { socket } from '@/lib/socket';
 import { useRouter } from 'next/navigation';
+import { GAMBIT_ABI, GAMBIT_ADDRESS } from '@/constants';
 
 export default function Home() {
   type GameMode = 'ranked' | 'unranked';
 
   const [mode, setMode] = useState<GameMode>('ranked');
-  const [rating, setRating] = useState<number | undefined>()
   const [tier, setTier] = useState<Tier>('novice');
   const [isWaiting, setIsWaiting] = useState(false);
   const router = useRouter();
   const { address } = useAccount();
 
+  //@ts-ignore
+  let rating:any
+
+//@ts-ignore
+  rating = useReadContract({
+      abi: GAMBIT_ABI,
+      address: GAMBIT_ADDRESS,
+      // to  do: rename this to getplayerdata and make all corresponding changes 
+      functionName: "getFullPlayerData",
+      args: [address]
+    })?.data
+
+
+    
   useEffect(() => {
     // Demo rating - replace with actual rating fetch
-    let rating = 201;
-    setRating(rating);
-    setTier(getTierFromRating(rating));
-  }, []);
+    if (rating){
+      //@ts-ignore
+      console.log(Number(rating[2]))
+      //@ts-ignore
+      setTier(getTierFromRating(Number(rating[2])));
+    }
+  }, [rating]);
 
   useEffect(() => {
     socket.on('match_found', (gameData) => {

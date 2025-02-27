@@ -8,3 +8,4 @@ export function getTierFromRating(rating: number): Tier {
     if (rating < 1200) return 'expert';
     return 'grandmaster';
   }
+

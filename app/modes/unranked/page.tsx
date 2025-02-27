@@ -1,5 +1,4 @@
 'use client'
-import ChessGame from '@/components/ChessGame';
 
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
