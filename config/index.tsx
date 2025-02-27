@@ -13,6 +13,7 @@ export const networks = [foundry]
 
 //Set up the Wagmi Adapter (Config)
 export const wagmiAdapter = new WagmiAdapter({
+  //@ts-ignore
   storage: createStorage({
     storage: cookieStorage
   }),

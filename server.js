@@ -117,7 +117,6 @@ app.prepare().then(() => {
 
     socket.on("get_game_data", ({ roomId, walletAddress }) => {
       console.log("room id idhar hai", roomId)
-      console.log("saare games idhar hain", games)
       const game = games.get(roomId.toString());
 
       console.log("ye dekh game", game)

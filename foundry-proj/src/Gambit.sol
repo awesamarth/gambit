@@ -55,6 +55,7 @@ contract Gambit {
             revert UsernameAlreadyTaken();
         }
         addressToPlayer[msg.sender].username = _username;
+        addressToPlayer[msg.sender].playerAddress = msg.sender;
         addressToPlayer[msg.sender].isRegistered = true;
         isUsernameTaken[_username] = true;
         gambitToken.mintAndApproveGambit(msg.sender, 200* 10**18); // 200 full GBT tokens
