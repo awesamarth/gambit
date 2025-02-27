@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { useAccount, useDisconnect, useReadContract } from 'wagmi';
 import { useState } from 'react';
 import { User } from 'lucide-react';
+import { formatEther } from 'viem';
 import { GAMBIT_TOKEN_ABI, GAMBIT_ABI, GAMBIT_ADDRESS, GAMBIT_TOKEN_ADDRESS } from '@/constants';
 
 export default function Navbar() {
@@ -31,6 +32,10 @@ export default function Navbar() {
     args: [address]
   }).data
 
+  console.log("full player data is here: ")
+  console.log(playerData)
+
+  console.log("player balance is here: ")
   console.log(Number(playerBalance))
 
 
@@ -64,12 +69,13 @@ export default function Navbar() {
           <div className="flex items-center gap-4 bg-gray-200 rounded-full px-4 py-2">
             <div className="flex items-center gap-2">
               <span className="text-yellow-500">⭐</span>
-              <span className="font-medium">1103</span>
+              {/* @ts-ignore */}
+              <span className="font-medium">{playerData ? Number(playerData[2]) : "0"}</span>
             </div>
             <div className="flex items-center gap-2">
               <span>🪙</span>
-
-              <span className="font-medium">{playerBalance ? Number(playerBalance) : 0}</span>
+              {/* @ts-ignore */}
+              <span className="font-medium">{playerBalance ? formatEther(playerBalance) : 0}</span>
             </div>
             <div className="relative">
               <button
@@ -83,7 +89,8 @@ export default function Navbar() {
                 <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10">
                   <div className="py-1">
                     <div className='w-full text-sm font-bold text-left px-4 py-2 text-gray-700'>
-                      <div className=" pb-2 border-b">Hi, vro!</div>
+                      {/* @ts-ignore */}
+                      <div className=" pb-2 border-b">Hi, {playerData ? playerData[0] != "" ? playerData[0] : "vro" : "vro"}!</div>
                     </div>
                     <button
                       className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"

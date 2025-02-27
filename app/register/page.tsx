@@ -6,42 +6,97 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'; // Assuming you have these UI components
 import { useRouter } from 'next/navigation';
-import { useAccount } from 'wagmi';
-import { useToast } from '@/hooks/use-toast';
-// You'll need to create these hooks for contract interaction
-// import { useGambitContract } from '@/hooks/useGambitContract';
+import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadContract } from 'wagmi';
+import { GAMBIT_ABI, GAMBIT_ADDRESS } from '@/constants';
 
 export default function RegisterPage() {
   const [username, setUsername] = useState('');
   const [isRegistering, setIsRegistering] = useState(false);
+  const [txHash, setTxHash] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
   const router = useRouter();
   const { address } = useAccount();
-  const { toast } = useToast();
-//   const { registerPlayer, isPlayerRegistered } = useGambitContract();
+  const { writeContractAsync } = useWriteContract();
+  
+  // This hook will wait for transaction confirmation
+  const { 
+    isLoading: isConfirming, 
+    isSuccess: isConfirmed,
+    isError: isConfirmError,
+    error: confirmError
+  } = useWaitForTransactionReceipt({
+    hash: txHash as `0x${string}` | undefined,
+  });
+  
+  // Handle transaction confirmation error
+  if (isConfirmError && confirmError) {
+    console.error("Transaction confirmation error:", confirmError);
+    // Extract error message - adjust this based on your error structure
+    const errorMsg = confirmError.message || "Transaction failed";
+    setErrorMessage(errorMsg);
+    setIsRegistering(false)
+    
+    setTxHash(''); // Reset hash to allow retrying
+  }
+  
+  // Redirect after transaction is confirmed
+  if (isConfirmed) {
+    router.push('/modes');
+  }
 
+  const alreadyRegistered = useReadContract({
+      abi:GAMBIT_ABI,
+      address:GAMBIT_ADDRESS,
+      //to do replapce this with getplayerdata
+      functionName:"getFullPlayerData",
+      args:[address]
+  }).data
+
+  if(alreadyRegistered){
+    //@ts-ignore
+    if(alreadyRegistered[4]){
+      router.push("/")
+    }
+  }
+  
   const handleRegister = async () => {
     if (!address || !username.trim()) return;
     
     try {
       setIsRegistering(true);
-    //   await registerPlayer();
+      setErrorMessage(''); // Clear any previous errors
       
-      toast({
-        title: "Registration successful!",
-        description: "200 GBT tokens have been added to your account.",
+      // Submit transaction
+      const hash = await writeContractAsync({
+        abi: GAMBIT_ABI,
+        address: GAMBIT_ADDRESS,
+        functionName: "registerPlayer",
+        args: [username]
       });
       
-      // Redirect to modes page after successful registration
-      router.push('/modes');
-    } catch (error) {
+      // Store hash for tracking confirmation
+      setTxHash(hash);
+      
+    } catch (error: any) {
       console.error("Registration failed:", error);
-      toast({
-        title: "Registration failed",
-        description: "Please try again later.",
-        variant: "destructive",
-      });
-    } finally {
+      
+      // Check for custom errors
+      if (error.cause?.data?.data) {
+        // This is where custom errors are typically found in returned error objects
+        const errorData = error.cause.data.data;
+        if (errorData.includes("AlreadyRegistered")) {
+          setErrorMessage("This wallet is already registered");
+        } else if (errorData.includes("UsernameAlreadyTaken")) {
+          setErrorMessage("This username is already taken");
+        } else {
+          setErrorMessage(error.message || "Registration failed");
+        }
+      } else {
+        setErrorMessage(error.message || "Registration failed");
+      }
+      
       setIsRegistering(false);
     }
   };
@@ -52,6 +107,13 @@ export default function RegisterPage() {
         <h1 className="text-2xl font-bold mb-6">Welcome to Gambit Chess</h1>
         
         <div className="space-y-6">
+          {errorMessage && (
+            <Alert variant="destructive">
+              <AlertTitle>Error</AlertTitle>
+              <AlertDescription>Username is already taken</AlertDescription>
+            </Alert>
+          )}
+          
           <div>
             <Label htmlFor="username">Choose a Username</Label>
             <Input
@@ -74,10 +136,12 @@ export default function RegisterPage() {
           
           <Button 
             onClick={handleRegister} 
-            disabled={isRegistering || !username.trim() || !address}
+            disabled={isRegistering || isConfirming || !username.trim() || !address}
             className="w-full"
           >
-            {isRegistering ? 'Registering...' : 'Register & Claim 200 GBT'}
+            {isRegistering ? 'Initiating transaction...' : 
+             isConfirming ? 'Confirming transaction...' : 
+             'Register & Claim 200 GBT'}
           </Button>
         </div>
       </Card>

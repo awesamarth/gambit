@@ -45,6 +45,7 @@
     "@types/node": "20.6.2",
     "@types/react": "18.2.22",
     "@types/react-dom": "18.2.7",
+    "@wagmi/core": "^2.16.5",
     "autoprefixer": "10.4.15",
     "bufferutil": "^4.0.9",
     "chess.js": "^1.0.0-beta.6",
