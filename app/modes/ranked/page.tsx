@@ -15,14 +15,15 @@ export default function Home() {
   const [mode, setMode] = useState<GameMode>('ranked');
   const [tier, setTier] = useState<Tier>('novice');
   const [isWaiting, setIsWaiting] = useState(false);
+  const [username, setUsername] = useState("")
   const router = useRouter();
   const { address } = useAccount();
 
   //@ts-ignore
-  let rating:any
+  let playerData:any
 
 //@ts-ignore
-  rating = useReadContract({
+  playerData = useReadContract({
       abi: GAMBIT_ABI,
       address: GAMBIT_ADDRESS,
       // to  do: rename this to getplayerdata and make all corresponding changes 
@@ -34,13 +35,14 @@ export default function Home() {
     
   useEffect(() => {
     // Demo rating - replace with actual rating fetch
-    if (rating){
+    if (playerData){
       //@ts-ignore
-      console.log(Number(rating[2]))
-      //@ts-ignore
-      setTier(getTierFromRating(Number(rating[2])));
+      console.log(Number(playerData[2]))
+      // @ts-ignore
+      setTier(getTierFromRating(Number(playerData[2])));
+      setUsername(playerData[0])
     }
-  }, [rating]);
+  }, [playerData]);
 
   useEffect(() => {
     socket.on('match_found', (gameData) => {
@@ -63,6 +65,7 @@ export default function Home() {
 
     socket.emit('join_lobby', {
       walletAddress: address,
+      username: username,
       tier,
       rankedOrUnranked: mode
     });

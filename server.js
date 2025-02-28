@@ -1,6 +1,7 @@
 import { createServer } from "node:http";
 import next from "next";
 import { Server } from "socket.io";
+import { verifyMessage } from "viem";
 
 const dev = process.env.NODE_ENV !== "production";
 const hostname = "localhost";
@@ -55,7 +56,7 @@ app.prepare().then(() => {
 
       if (!game) return;
 
-      
+
       game.playerColors.b = walletAddress;
       console.log("game is here ", game)
 
@@ -64,26 +65,39 @@ app.prepare().then(() => {
     });
 
 
-    socket.on("join_lobby", ({ walletAddress, tier, rankedOrUnranked }) => {
-      console.log("join lobby received")
-      console.log("Join lobby request:", { walletAddress, tier, rankedOrUnranked });
-
+    socket.on("join_lobby", ({ walletAddress, username, tier, rankedOrUnranked }) => {
+      console.log("join lobby received");
+      console.log("Join lobby request:", { walletAddress, username, tier, rankedOrUnranked });
+    
       socket.walletAddress = walletAddress;
+      socket.username = username; // Store username in socket object
       walletToSocket.set(walletAddress, socket);
-
+    
       const waitingList = waitingPlayers[rankedOrUnranked][tier];
-
+    
       // Don't add if already in queue
       if (!waitingList.includes(walletAddress)) {
         waitingList.push(walletAddress);
       }
-
+    
       // Match players if enough are waiting
       if (waitingList.length >= 2) {
         const player1 = waitingList.shift();
         const player2 = waitingList.shift();
         const roomId = Date.now().toString();
-
+    
+        // Get the sockets to retrieve usernames
+        const player1Socket = walletToSocket.get(player1);
+        const player2Socket = walletToSocket.get(player2);
+    
+        // Get current time in GMT
+        const currentTime = new Date().toUTCString();
+    
+        // Create message for signing
+        const username1 = player1Socket.username || "Player 1";
+        const username2 = player2Socket.username || "Player 2";
+        const message = `${username1} vs ${username2} | ${tier} | ${rankedOrUnranked} | ${currentTime}`;
+    
         // Create game
         games.set(roomId, {
           roomId,
@@ -94,60 +108,111 @@ app.prepare().then(() => {
             'w': player1,
             'b': player2
           },
+          playerUsernames: {
+            'w': username1,
+            'b': username2
+          },
           moves: [],
-          compactHistory:"",
+          compactHistory: "",
           currentTurn: 'w',
-          gameStatus: 'started',
-          winner: ""
+          gameStatus: 'signing_start',
+          winner: "",
+          start_sig_count: 0,
+          end_sig_count: 0,
+          message: message // Store the message in the game object
         });
-
-        // Join players to game room
-        const player1Socket = walletToSocket.get(player1);
-        const player2Socket = walletToSocket.get(player2);
-
+    
         if (player1Socket && player2Socket) {
-
-          console.log("match found")
+          console.log("match found");
           player1Socket.join(roomId);
           player2Socket.join(roomId);
-          io.to(roomId).emit('match_found', games.get(roomId));
+    
+          // Get the game with the message
+          const game = games.get(roomId);
+    
+          // Send the game with the message to both players
+          io.to(roomId).emit('match_found', game);
         }
+      }
+    });
+
+    socket.on("sign", async({ roomId, signature, address }) => {
+      console.log("Signature received from client:", { roomId, signature, address });
+
+      const game = games.get(roomId);
+      if (!game) {
+        console.log("Game not found for signature verification");
+        return;
+      }
+
+      const valid = await verifyMessage({
+        address: address ,
+        message: game.message,
+        signature: signature 
+      })
+
+      console.log(valid)
+
+      if(!valid){
+        console.log("invalid signature")
+        return
+      }
+      // Increment signature count
+      game.start_sig_count += 1;
+      console.log(`Signature count for game ${roomId}: ${game.start_sig_count}`);
+
+      // If both players have signed, start the game
+      if (game.start_sig_count === 2) {
+        console.log("Both players have signed. Starting game!");
+        game.gameStatus = 'started';
+
+        // Emit start_game event to the room
+        io.to(roomId).emit('game_started', (game));
       }
     });
 
     socket.on("get_game_data", ({ roomId, walletAddress }) => {
       console.log("room id idhar hai", roomId)
       const game = games.get(roomId.toString());
-
+    
       console.log("ye dekh game", game)
       if (!game) {
         socket.emit('game_data', { error: 'Game not found' });
         return;
       }
-      
+    
       // Store the wallet address for this socket
       socket.walletAddress = walletAddress;
       walletToSocket.set(walletAddress, socket);
-      
+    
       // Join the room
       socket.join(roomId);
-      
+    
+      // Use the message that was created when the game was set up
+      // If it doesn't exist for some reason, create a new one as a fallback
+      const message = game.message || (() => {
+        const username1 = game.playerUsernames?.w || "Player 1";
+        const username2 = game.playerUsernames?.b || "Player 2";
+        const currentTime = new Date().toUTCString();
+        return `${username1} vs ${username2} | ${game.tier} | ${game.mode} | ${currentTime}`;
+      })();
+    
       // Send the game data
-      socket.emit('game_data', game);
+      socket.emit('game_data', { game: game, message: message });
     });
 
 
     socket.on("get_challenges", () => {
       console.log("Client requested available challenges");
-      
+
       // Convert challenges Map to an array
-      const availableChallenges = Array.from(challenges.values()).filter(challenge => 
+      const availableChallenges = Array.from(challenges.values()).filter(challenge =>
         challenge.gameStatus === 'waiting' && challenge.playerColors.b === ""
       );
-      
+
       // Send the challenges back to the client
       socket.emit('challenges_list', availableChallenges);
-      
+
       console.log(`Sent ${availableChallenges.length} available challenges to client`);
     });
     socket.on("create_room", ({ walletAddress, tier, wager, isChallenge }) => {
@@ -166,7 +231,7 @@ app.prepare().then(() => {
           'b': ""
         },
         moves: [],
-        compactHistory:"",
+        compactHistory: "",
         currentTurn: 'w',
         gameStatus: 'waiting',
         winner: ""
@@ -214,7 +279,7 @@ app.prepare().then(() => {
       console.log("from", from)
       console.log("to", to)
       game.compactHistory += from + to;
-  
+
       // Add promotion piece if there is one
       if (promotion) {
         game.compactHistory += promotion.toUpperCase();

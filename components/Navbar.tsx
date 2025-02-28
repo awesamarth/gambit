@@ -32,11 +32,7 @@ export default function Navbar() {
     args: [address]
   }).data
 
-  console.log("full player data is here: ")
-  console.log(playerData)
 
-  console.log("player balance is here: ")
-  console.log(Number(playerBalance))
 
 
   return (

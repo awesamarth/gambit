@@ -4,13 +4,17 @@ import { Chessboard } from 'react-chessboard';
 import { Chess } from 'chess.js';
 import { socket } from '@/lib/socket';
 import { useParams, usePathname } from 'next/navigation';
-import { useAccount } from 'wagmi';
+import { useAccount, useSignMessage } from 'wagmi';
 
 export default function GamePage() {
   const [game, setGame] = useState(new Chess());
   const [playerColor, setPlayerColor] = useState<'w' | 'b'>('w');
   const [isMyTurn, setIsMyTurn] = useState(false);
   const [gameData, setGameData] = useState(null);
+  const [message, setMessage] = useState('');
+  const [isSigning, setIsSigning] = useState(false);
+  const { signMessageAsync } = useSignMessage()
+
   // Remove state for promotionPiece and use a ref instead
   const promotionPieceRef = useRef('q');
 
@@ -30,36 +34,91 @@ export default function GamePage() {
 
     socket.on('game_data', (data) => {
       setGameData(data);
+      setMessage(data.message);
 
-      // Apply all existing moves to a fresh Chess instance
-      if (data.moves && data.moves.length > 0) {
-        const newGame = new Chess();
-        data.moves.forEach((move: any) => {
-          try {
-            newGame.move({
-              from: move.from,
-              to: move.to,
-              promotion: move.promotion,
+      console.log("game_data received: ")
+      console.log(data)
+
+      // Check if game is in signing state
+      if (data.game.gameStatus === 'signing_start') {
+        console.log("state rn is signing start")
+        setIsSigning(true);
+      } else {
+        setIsSigning(false);
+        
+        // If game is already in started state, initialize the board
+        if (data.game.gameStatus === 'started') {
+          // Apply any existing moves
+          if (data.game.moves && data.game.moves.length > 0) {
+            const newGame = new Chess();
+            data.game.moves.forEach((move: any) => {
+              try {
+                newGame.move({
+                  from: move.from,
+                  to: move.to,
+                  promotion: move.promotion,
+                });
+              } catch (error) {
+                console.error('Error applying move:', error);
+              }
             });
-          } catch (error) {
-            console.error('Error applying move:', error);
+            setGame(newGame);
+          } else {
+            // No moves yet, just use a fresh board
+            setGame(new Chess());
           }
-        });
-        setGame(newGame);
+        }
       }
 
       // Determine if you're white or black
-      const isWhite = data.playerColors.w === address;
+      const isWhite = data.game.playerColors.w === address;
       setPlayerColor(isWhite ? 'w' : 'b');
 
-      // Set whose turn it is
-      setIsMyTurn(data.currentTurn === (isWhite ? 'w' : 'b'));
+      // Set whose turn it is (only if game has started)
+      if (data.game.gameStatus === 'started') {
+        setIsMyTurn(data.game.currentTurn === (isWhite ? 'w' : 'b'));
+      } else {
+        setIsMyTurn(false); // No moves allowed during signing
+      }
+    });
+    socket.on('game_started', (data) => {
+      console.log('Game started data', data);
+      
+      // Update the game data locally
+      setGameData((currentGameData) => {
+        if (!currentGameData) return null;
+        
+        return {
+          ...currentGameData,
+          game: {
+            ...currentGameData.game,
+            gameStatus: 'started'
+          }
+        };
+      });
+      
+      // Game is no longer in signing state
+      setIsSigning(false);
+      
+      // Initialize with a fresh chess board
+      setGame(new Chess());
+      
+      // Update turn status - white always starts in chess
+      const isWhite = data?.playerColors?.w === address;
+      
+      setPlayerColor(isWhite ? 'w' : 'b');
+      setIsMyTurn(isWhite); // If you're white, it's your turn
+      
+      console.log("Game started, board reset to initial position");
     });
 
     return () => {
       socket.off('game_data');
+      socket.off('game_started');
+
     };
   }, [gameId, address]);
+
 
   // 2) Handle moves coming from the opponent
   useEffect(() => {
@@ -82,18 +141,21 @@ export default function GamePage() {
         });
       }
 
-      // Update local "turn" state
-      setIsMyTurn(whoseTurn === playerColor);
+      // Update local "turn" state (only if not in signing state)
+      if (!isSigning) {
+        setIsMyTurn(whoseTurn === playerColor);
+      }
     });
 
     return () => {
       socket.off('move');
     };
-  }, [gameId, playerColor]);
+  }, [gameId, playerColor, isSigning]);
 
   // 3) The function that actually executes a move in Chess.js
   function completeMove(from: string, to: string) {
-    if (!isMyTurn) return false;
+    // Prevent moves during signing state
+    if (isSigning || !isMyTurn) return false;
 
     const promotion = promotionPieceRef.current;
     try {
@@ -131,13 +193,14 @@ export default function GamePage() {
 
   // 4) The onDrop handler (no custom popups)
   function onDrop(sourceSquare: string, targetSquare: string) {
-    if (!isMyTurn) return false;
+    // Prevent moves during signing state
+    if (isSigning || !isMyTurn) return false;
     return completeMove(sourceSquare, targetSquare);
   }
 
   // 5) Check for game end (checkmate, draw, etc.)
   useEffect(() => {
-    if (game.isGameOver()) {
+    if (game.isGameOver() && !isSigning) {
       let result = 'draw';
       let winner = null;
 
@@ -158,13 +221,18 @@ export default function GamePage() {
         winner: winner
           ? winner === 'w'
             //@ts-ignore
-            ? gameData?.playerColors.w
+            ? gameData?.game.playerColors.w
             //@ts-ignore
-            : gameData?.playerColors.b
+            : gameData?.game.playerColors.b
           : null,
       });
     }
-  }, [game, gameId, gameData]);
+  }, [game, gameId, gameData, isSigning]);
+  
+  // Log the current FEN for debugging
+  useEffect(() => {
+    console.log("Current FEN:", game.fen());
+  }, [game]);
 
   return (
     <div className="container mx-auto p-4 mt-[75px]">
@@ -173,35 +241,62 @@ export default function GamePage() {
           <>
             <div className="mb-4">
               <h1 className="text-2xl font-bold">
-                {/* @ts-ignore */}
-                {gameData.mode.charAt(0).toUpperCase() + gameData.mode.slice(1)} Game
+                {gameData.game.mode.charAt(0).toUpperCase() + gameData.game.mode.slice(1)} Game
               </h1>
-              {/* @ts-ignore */}
-              <p>Tier: {gameData.tier}</p>
-              {/* @ts-ignore */}
-              {gameData.mode === 'ranked' && <p>Wager: {gameData.wager}</p>}
+              <p>Tier: {gameData.game.tier}</p>
+              {gameData.game.mode === 'ranked' && <p>Wager: {gameData.game.wager}</p>}
             </div>
+
+            {isSigning ? (
+              <div className="p-4 bg-yellow-100 border border-yellow-400 text-yellow-700 rounded mb-4">
+                <h2 className="font-bold text-lg mb-2">Please sign the message to start the game</h2>
+                <div className="bg-gray-100 p-2 rounded mb-4 font-mono text-sm overflow-auto">
+                  {message}
+                </div>
+                <button 
+                  className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+                  onClick={async() => {
+                    try {
+                      const signature = await signMessageAsync({ message:message })
+                      console.log('Signature:', signature)
+                      socket.emit("sign", {roomId:gameId, signature:signature, address})
+                    } catch (error) {
+                      console.error('Error signing message:', error)
+                    }
+                  }}
+                >
+                  Sign Message
+                </button>
+              </div>
+            ) : null}
 
             <div className="aspect-square">
               <Chessboard
                 position={game.fen()}
                 onPieceDrop={onDrop}
-                //@ts-ignore
                 onPromotionPieceSelect={(piece) => {
-                    console.log("Selected promotion piece:", piece);
-                    // Convert "wN" or "bB" to "n" or "b"
-                    //@ts-ignore
-                    const validPiece = piece.slice(1).toLowerCase();
-                    promotionPieceRef.current = validPiece;
-                    return validPiece; // Return the transformed piece
-                  }}
+                  console.log("Selected promotion piece:", piece);
+                  // Convert "wN" or "bB" to "n" or "b"
+                  const validPiece = piece.slice(1).toLowerCase();
+                  promotionPieceRef.current = validPiece;
+                  return validPiece; // Return the transformed piece
+                }}
                 boardOrientation={playerColor === 'w' ? 'white' : 'black'}
                 areArrowsAllowed={true}
-              />
+                isDraggablePiece={({ piece }) => {
+                  console.log("Piece check:", { 
+                    piece, 
+                    pieceColor: piece.charAt(0), 
+                    playerColor, 
+                    isMyTurn, 
+                    isSigning 
+                  });
+                  return !isSigning && isMyTurn;
+                }}              />
             </div>
 
             <div className="mt-4">
-              {game.isGameOver() ? (
+              {game.isGameOver() && !isSigning ? (
                 <div className="p-4 bg-gray-800 text-white rounded-lg shadow-lg">
                   <h2 className="text-xl font-bold mb-2">Game Over!</h2>
                   {game.isCheckmate() ? (
@@ -214,15 +309,17 @@ export default function GamePage() {
                       {game.isStalemate()
                         ? 'Stalemate'
                         : game.isThreefoldRepetition()
-                        ? 'Threefold Repetition'
-                        : game.isInsufficientMaterial()
-                        ? 'Insufficient Material'
-                        : 'Fifty-move Rule'}
+                          ? 'Threefold Repetition'
+                          : game.isInsufficientMaterial()
+                            ? 'Insufficient Material'
+                            : 'Fifty-move Rule'}
                     </p>
                   ) : (
                     <p className="text-lg">Game ended</p>
                   )}
                 </div>
+              ) : isSigning ? (
+                <p>Status: Waiting for signatures</p>
               ) : (
                 <p>Status: {isMyTurn ? 'Your turn' : "Opponent's turn"}</p>
               )}

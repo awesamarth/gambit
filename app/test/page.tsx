@@ -8,15 +8,15 @@ export default function App() {
   const { signMessageAsync } = useSignMessage()
   const [signature, setSignature] = useState("")
 
-  const {address} = useAccount()
-const verifySignature = async()=> {
-    const valid = await verifyMessage({ 
-        address: address as `0x${string}`, 
-        message: 'hello world', 
-        signature: signature as `0x${string}`
-      })
+  const { address } = useAccount()
+  const verifySignature = async () => {
+    const valid = await verifyMessage({
+      address: address as `0x${string}`,
+      message: 'hello world',
+      signature: signature as `0x${string}`
+    })
     console.log(valid)
-}
+  }
 
 
   const handleClick = async () => {
@@ -31,12 +31,12 @@ const verifySignature = async()=> {
 
   return (
     <div>
-    <button className='my-40' onClick={handleClick}>
-      Sign message
-    </button>
-    <button className='my-40' onClick={verifySignature}>
-      Verify Signature
-    </button>
+      <button className='my-40' onClick={handleClick}>
+        Sign message
+      </button>
+      <button className='my-40' onClick={verifySignature}>
+        Verify Signature
+      </button>
     </div>
 
   )
