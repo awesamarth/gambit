@@ -136,6 +136,37 @@ app.prepare().then(() => {
       }
     });
 
+
+    socket.on("get_game_data", ({ roomId, walletAddress }) => {
+      console.log("room id idhar hai", roomId)
+      const game = games.get(roomId.toString());
+    
+      console.log("ye dekh game", game)
+      if (!game) {
+        socket.emit('game_data', { error: 'Game not found' });
+        return;
+      }
+    
+      // Store the wallet address for this socket
+      socket.walletAddress = walletAddress;
+      walletToSocket.set(walletAddress, socket);
+    
+      // Join the room
+      socket.join(roomId);
+    
+      // Use the message that was created when the game was set up
+      // If it doesn't exist for some reason, create a new one as a fallback
+      const message = game.message || (() => {
+        const username1 = game.playerUsernames?.w || "Player 1";
+        const username2 = game.playerUsernames?.b || "Player 2";
+        const currentTime = new Date().toUTCString();
+        return `${username1} vs ${username2} | ${game.tier} | ${game.mode} | ${currentTime}`;
+      })();
+    
+      // Send the game data
+      socket.emit('game_data', (game));
+    });
+
     socket.on("sign", async({ roomId, signature, address }) => {
       console.log("Signature received from client:", { roomId, signature, address });
 
@@ -171,35 +202,6 @@ app.prepare().then(() => {
       }
     });
 
-    socket.on("get_game_data", ({ roomId, walletAddress }) => {
-      console.log("room id idhar hai", roomId)
-      const game = games.get(roomId.toString());
-    
-      console.log("ye dekh game", game)
-      if (!game) {
-        socket.emit('game_data', { error: 'Game not found' });
-        return;
-      }
-    
-      // Store the wallet address for this socket
-      socket.walletAddress = walletAddress;
-      walletToSocket.set(walletAddress, socket);
-    
-      // Join the room
-      socket.join(roomId);
-    
-      // Use the message that was created when the game was set up
-      // If it doesn't exist for some reason, create a new one as a fallback
-      const message = game.message || (() => {
-        const username1 = game.playerUsernames?.w || "Player 1";
-        const username2 = game.playerUsernames?.b || "Player 2";
-        const currentTime = new Date().toUTCString();
-        return `${username1} vs ${username2} | ${game.tier} | ${game.mode} | ${currentTime}`;
-      })();
-    
-      // Send the game data
-      socket.emit('game_data', { game: game, message: message });
-    });
 
 
     socket.on("get_challenges", () => {
