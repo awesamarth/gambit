@@ -1,91 +1,108 @@
 'use client'
-
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { getTierFromRating, Tier } from '@/utils';
+import { useAccount, useReadContract } from 'wagmi';
 import { socket } from '@/lib/socket';
-
+import { useRouter } from 'next/navigation';
+import { GAMBIT_ABI, GAMBIT_ADDRESS } from '@/constants';
 
 export default function Home() {
   type GameMode = 'ranked' | 'unranked';
-  type Tier = 'novice' | 'amateur' | 'pro' | 'expert' | 'grandmaster' | 'open';
 
-  const [mode, setMode] = useState<GameMode>('unranked');
+  const [mode, setMode] = useState<GameMode>('ranked');
   const [tier, setTier] = useState<Tier>('novice');
-  const [walletAddress, setWalletAddress] = useState('');
-  const [isWaiting, setIsWaiting] = useState(false);  
+  const [isWaiting, setIsWaiting] = useState(false);
+  const [username, setUsername] = useState("")
+  const router = useRouter();
+  const { address } = useAccount();
+
+  //@ts-ignore
+  let playerData: any
+
+  //@ts-ignore
+  playerData = useReadContract({
+    abi: GAMBIT_ABI,
+    address: GAMBIT_ADDRESS,
+    // to  do: rename this to getplayerdata and make all corresponding changes 
+    functionName: "getFullPlayerData",
+    args: [address]
+  })?.data
+
+
+
+  useEffect(() => {
+    // Demo rating - replace with actual rating fetch
+    if (playerData) {
+      //@ts-ignore
+      console.log(Number(playerData[2]))
+      // @ts-ignore
+      setTier(getTierFromRating(Number(playerData[2])));
+      setUsername(playerData[0])
+    }
+  }, [playerData]);
+
+  useEffect(() => {
+    socket.on('match_found', (gameData) => {
+      setIsWaiting(false);
+
+
+      // Navigate to the game page
+      router.push(`/play/${mode}/${gameData.roomId}`);
+    });
+
+    return () => {
+      socket.off('match_found');
+    };
+  }, [address, mode, router]);
 
   const joinLobby = () => {
-
-    console.log("join lobby called")
-    if (!walletAddress) {
-      console.log("address hi nahi hai bc")
+    if (!address) {
       return;
     }
 
     socket.emit('join_lobby', {
-      walletAddress,
+      walletAddress: address,
+      username: username,
       tier,
       rankedOrUnranked: mode
     });
-    
+
     setIsWaiting(true);
-   
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen  bg-[#594205] text-white">
       <div className="container mx-auto px-4 py-8">
         <div className='mt-[75px]'>
-        <Card className="p-6 mb-6">
-        <div className="space-y-6">
-          <div>
-            <Label htmlFor="wallet">Wallet Address</Label>
-            
-            <input
-              id="wallet"
-              type="text"
-              placeholder="Enter wallet address"
-              value={walletAddress}
-              onChange={(e) => setWalletAddress(e.target.value)}
-              className="w-full p-2 border rounded mt-1"
-            />
-          </div>
+          <div className=' text-3xl mb-12 w-full text-center'>Unranked Match</div>
+          <Card className="p-6 mb-6">
+            <div className="space-y-6">
+              <div>
+                <Label htmlFor="wallet">Username</Label>
+                <div>{playerData?playerData[0]==""?"anon":playerData[0]:"anon"}</div>
+              </div>
+              <div>
+                <Label htmlFor="wallet">Wallet Address</Label>
+                <div>{address || "Not connected"}</div>
+              </div>
 
+              <div className="space-y-4">
+                <Label>Tier</Label>
+                <div>{tier.charAt(0).toUpperCase() + tier.slice(1)}</div>
+              </div>
 
-          <div className="space-y-4">
-            <Label>Tier</Label>
-            <RadioGroup 
-              value={tier} 
-              onValueChange={(value: Tier) => setTier(value)}
-              className="flex flex-col space-y-2"
-            >
-              {['novice', 'amateur', 'pro', 'expert', 'grandmaster'].map((t) => (
-                <div key={t} className="flex items-center space-x-2">
-                  <RadioGroupItem value={t} id={t} />
-                  <Label htmlFor={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</Label>
-                </div>
-              ))}
-              {mode === 'unranked' && (
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="open" id="open" />
-                  <Label htmlFor="open">Open</Label>
-                </div>
-              )}
-            </RadioGroup>
-          </div>
-
-          <Button 
-            onClick={joinLobby}
-            disabled={isWaiting}
-            className="w-full"
-          >
-            {isWaiting ? 'Waiting for opponent...' : 'Find Match'}
-          </Button>
-        </div>
-      </Card>
+              <Button
+                onClick={joinLobby}
+                disabled={isWaiting || !address}
+                className="w-full"
+              >
+                {isWaiting ? 'Waiting for opponent...' : 'Find Match'}
+              </Button>
+            </div>
+          </Card>
         </div>
       </div>
     </div>

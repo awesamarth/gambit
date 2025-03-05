@@ -74,10 +74,10 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen  bg-[#594205] text-white">
       <div className="container mx-auto px-4 py-8">
         <div className='mt-[75px]'>
-          <div className='border-2 w-full text-center'>{mode.charAt(0).toUpperCase() + mode.slice(1)}</div>
+          <div className=' text-3xl mb-12 w-full text-center'>Ranked Match</div>
           <Card className="p-6 mb-6">
             <div className="space-y-6">
               <div>

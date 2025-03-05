@@ -44,7 +44,7 @@ export default function RegisterPage() {
   return (
     <div className="max-w-md mx-auto mt-[100px] p-4">
       <Card className="p-6">
-        <h1 className="text-2xl font-bold mb-6">Welcome to Gambit Chess</h1>
+        <h1 className="text-2xl font-bold mb-6">Welcome to Gambit!</h1>
 
         <div className="space-y-6">
           <div>
@@ -63,7 +63,8 @@ export default function RegisterPage() {
             <ul className="list-disc pl-4 space-y-1">
               <li>Receive 200 GBT tokens to your wallet</li>
               <li>Play in ranked and wager matches</li>
-              <li>Track your performance on the leaderboard</li>
+              <li>Create and join private rooms</li>
+              <li>Track your performance on the leaderboard (coming soon)</li>
             </ul>
           </div>
 

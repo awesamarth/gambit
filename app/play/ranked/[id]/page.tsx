@@ -13,7 +13,13 @@ export default function GamePage() {
   const [gameData, setGameData] = useState(null);
   const [message, setMessage] = useState('');
   const [isSigning, setIsSigning] = useState(false);
+  const [hasSigned, setHasSigned] = useState(false);
   const { signMessageAsync } = useSignMessage()
+  const [isEndingSigning, setIsEndingSigning] = useState(false);
+  const [hasSignedEnding, setHasSignedEnding] = useState(false);
+  const [gameHistory, setGameHistory] = useState('');
+  const [isGameCompletelyOver, setIsGameCompletelyOver] = useState(false);
+
 
   // Remove state for promotionPiece and use a ref instead
   const promotionPieceRef = useRef('q');
@@ -23,11 +29,6 @@ export default function GamePage() {
   const pathname = usePathname();
   const { address } = useAccount();
 
-  const isDraggablePieceCallback = useCallback(() => {
-    console.log(isSigning)
-    console.log(isMyTurn)
-    return !isSigning && isMyTurn;
-  }, [isSigning, isMyTurn]);
 
   // 1) Load game data from server
   useEffect(() => {
@@ -59,31 +60,50 @@ export default function GamePage() {
       setPlayerColor(isWhite ? 'w' : 'b');
 
     });
+    socket.on('game_ended', (data) => {
+      console.log('Game has officially ended:', data);
+      setIsGameCompletelyOver(true);
+      setIsEndingSigning(false);
+      setHasSignedEnding(false);
+    });
+
+    socket.on('game_ending', (data) => {
+      console.log('Game ending received:', data);
+      // Set the game history for signing
+      if (data.compactHistory) {
+        console.log(data.compactHistory)
+        setGameHistory(data.compactHistory);
+        setIsEndingSigning(true);
+      }
+    });
 
     return () => {
       socket.off('game_data');
+      socket.off('game_ending');
+      socket.off('game_ended')
     };
   }, [gameId, address]);
 
   // NEW: Listen for game started event
   useEffect(() => {
-socket.on('game_started', (data) => {
-  console.log('Game started:', data);
-  
-  // FORCE a completely new object to ensure React detects change
-  setGameData({...data});
-  
-  // Game is no longer in signing state
-  setIsSigning(false);
-  
-  // Initialize with a fresh chess board
-  setGame(new Chess());
-  
-  // Update turn status - white always starts in chess
-  const isWhite = data?.playerColors?.w === address;
-  setPlayerColor(isWhite ? 'w' : 'b');
-  setIsMyTurn(isWhite);
-});
+    socket.on('game_started', (data) => {
+      console.log('Game started:', data);
+
+      // FORCE a completely new object to ensure React detects change
+      setGameData({ ...data });
+
+      // Game is no longer in signing state
+      setIsSigning(false);
+      setHasSigned(false);
+
+      // Initialize with a fresh chess board
+      setGame(new Chess());
+
+      // Update turn status - white always starts in chess
+      const isWhite = data?.playerColors?.w === address;
+      setPlayerColor(isWhite ? 'w' : 'b');
+      setIsMyTurn(isWhite);
+    });
 
     return () => {
       socket.off('game_started');
@@ -205,38 +225,100 @@ socket.on('game_started', (data) => {
   }, [game]);
 
   return (
-    <div className="container mx-auto p-4 mt-[75px]">
+    <div className="text-white mx-auto p-4 mt-[75px] min-h-screen w-full bg-[#594205]">
       <div className="max-w-3xl mx-auto">
-        {gameData ? (
+        {isGameCompletelyOver ? (
+          <div className="text-center p-8 bg-gradient-to-b from-[#906810] to-[#744D0B] text-white rounded-lg shadow-xl border-2 border-[#B88A24]">
+            <h1 className="text-4xl font-bold mb-6">Game Over</h1>
+            <p className="text-xl mb-8">Thanks for playing!</p>
+            <button
+              onClick={() => window.location.href = '/modes'}
+              className="bg-[#3B2A0A] text-white font-bold py-3 px-6 rounded-md hover:bg-[#594205] transition-colors border border-[#B88A24]"
+            >
+              Back to Game Modes
+            </button>
+          </div>
+        ) : gameData ? (
           <>
             <div className="mb-4">
               <h1 className="text-2xl font-bold">
-                {gameData.mode.charAt(0).toUpperCase() + gameData.mode.slice(1)} Game
+                {/* @ts-ignore */}
+                    Ranked Game
               </h1>
+              {/* @ts-ignore */}
               <p>Tier: {gameData.tier}</p>
+              {/* @ts-ignore */}
               {gameData.mode === 'ranked' && <p>Wager: {gameData.wager}</p>}
             </div>
 
             {isSigning ? (
               <div className="p-4 bg-yellow-100 border border-yellow-400 text-yellow-700 rounded mb-4">
-                <h2 className="font-bold text-lg mb-2">Please sign the message to start the game</h2>
-                <div className="bg-gray-100 p-2 rounded mb-4 font-mono text-sm overflow-auto">
-                  {message}
-                </div>
-                <button
-                  className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-                  onClick={async () => {
-                    try {
-                      const signature = await signMessageAsync({ message: message })
-                      console.log('Signature:', signature)
-                      socket.emit("sign", { roomId: gameId, signature: signature, address })
-                    } catch (error) {
-                      console.error('Error signing message:', error)
-                    }
-                  }}
-                >
-                  Sign Message
-                </button>
+                {hasSigned ? (
+                  <h2 className="font-bold text-lg mb-2">Waiting for opponent to sign...</h2>
+                ) : (
+                  <>
+                    <h2 className="font-bold text-lg mb-2">Please sign the message to start the game</h2>
+                    <div className="bg-gray-100 p-2 rounded mb-4 font-mono text-sm overflow-auto">
+                      {message}
+                    </div>
+                    <button
+                      className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+                      onClick={async () => {
+                        try {
+                          const signature = await signMessageAsync({ message: message })
+                          console.log('Signature:', signature)
+                          socket.emit("sign_start", { roomId: gameId, signature: signature, address })
+                          setHasSigned(true)
+                        } catch (error) {
+                          console.error('Error signing message:', error)
+                        }
+                      }}
+                    >
+                      Sign Message
+                    </button>
+                  </>
+                )}
+              </div>
+            ) : null}
+
+            {/* Add this after the isSigning section but before the chessboard */}
+            {isEndingSigning ? (
+              <div className="p-4 bg-yellow-100 border border-yellow-400 text-yellow-700 rounded mb-4">
+                {hasSignedEnding ? (
+                  <h2 className="font-bold text-lg mb-2">Waiting for opponent to sign game ending...</h2>
+                ) : (
+                  <>
+                    <h2 className="font-bold text-lg mb-2">Please sign to confirm game results</h2>
+                    <div className="bg-gray-100 p-2 rounded mb-4 font-mono text-sm overflow-auto">
+                      Game History is:
+                      <br />
+                      {gameHistory}
+                    </div>
+                    <button
+                      className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+                      onClick={async () => {
+                        try {
+                          const signingMessage = `Game History is:\n${gameHistory}`;
+                          const signature = await signMessageAsync({ message: signingMessage });
+                          console.log('End Signature:', signature);
+
+                          // Emit the sign_end event with required data
+                          socket.emit("sign_end", {
+                            roomId: gameId,
+                            signature: signature,
+                            address
+                          });
+
+                          setHasSignedEnding(true);
+                        } catch (error) {
+                          console.error('Error signing end message:', error);
+                        }
+                      }}
+                    >
+                      Sign Game Results
+                    </button>
+                  </>
+                )}
               </div>
             ) : null}
 
@@ -244,16 +326,18 @@ socket.on('game_started', (data) => {
               <Chessboard
                 position={game.fen()}
                 onPieceDrop={onDrop}
+                // @ts-ignore
                 onPromotionPieceSelect={(piece) => {
                   console.log("Selected promotion piece:", piece);
                   // Convert "wN" or "bB" to "n" or "b"
+                  //@ts-ignore
                   const validPiece = piece.slice(1).toLowerCase();
                   promotionPieceRef.current = validPiece;
                   return validPiece; // Return the transformed piece
                 }}
                 boardOrientation={playerColor === 'w' ? 'white' : 'black'}
                 areArrowsAllowed={true}
-                
+
               />
             </div>
 

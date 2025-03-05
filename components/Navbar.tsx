@@ -25,6 +25,7 @@ export default function Navbar() {
     args: [address]
   }).data
 
+  console.log(playerData)
   const playerBalance = useReadContract({
     abi: GAMBIT_TOKEN_ABI,
     address: GAMBIT_TOKEN_ADDRESS,
@@ -86,8 +87,9 @@ export default function Navbar() {
                   <div className="py-1">
                     <div className='w-full text-sm font-bold text-left px-4 py-2 text-gray-700'>
                       {/* @ts-ignore */}
-                      <div className=" pb-2 border-b">Hi, {playerData ? playerData[0] != "" ? playerData[0] : "vro" : "vro"}!</div>
+                      <div className=" pb-2 border-b">Hi, {playerData ? playerData[0] != "" ? playerData[0] : "anon" : "anon"}!</div>
                     </div>
+                    <Link href="/profile">
                     <button
                       className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                       onClick={() => {
@@ -97,6 +99,7 @@ export default function Navbar() {
                     >
                       View Profile
                     </button>
+                    </Link>
                     <button
                       className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                       onClick={() => {

@@ -20,98 +20,114 @@ contract Gambit {
         gambitToken = IGambitToken(_tokenAddress);
     }
 
-    modifier onlyOwner(){
+    modifier onlyOwner() {
         require(msg.sender == owner, "not owner");
-        _ ;
+        _;
     }
 
-    struct Player{
+    struct Player {
         string username;
         address playerAddress;
         uint rating;
         uint[] matchIds;
-        bool isRegistered;
     }
 
-    struct Match{
-        string matchId;
+    struct Match {
+        uint matchId;
         address[] playerAddresses;
         string[] startSignatures;
-        string moveHistory;  
+        string moveHistory;
         address winnerAddress;
         uint256 stakeAmount;
         bool isSettled;
     }
-    
+
     mapping(address => Player) public addressToPlayer;
-    mapping(string => Match) public matchIdToMatch;
+    mapping(uint => Match) public matchIdToMatch;
     mapping(string => bool) public isUsernameTaken;
 
     function registerPlayer(string memory _username) public {
-        if(addressToPlayer[msg.sender].isRegistered==true){
+        if (bytes(addressToPlayer[msg.sender].username).length != 0) {
+            
             revert AlreadyRegistered();
         }
-        if (isUsernameTaken[_username]){
+        if (isUsernameTaken[_username]) {
             revert UsernameAlreadyTaken();
         }
         addressToPlayer[msg.sender].username = _username;
         addressToPlayer[msg.sender].playerAddress = msg.sender;
-        addressToPlayer[msg.sender].isRegistered = true;
         isUsernameTaken[_username] = true;
-        gambitToken.mintAndApproveGambit(msg.sender, 200* 10**18); // 200 full GBT tokens
+        gambitToken.mintAndApproveGambit(msg.sender, 200 * 10 ** 18); // 200 full GBT tokens
     }
-     
-    function adjustRating(uint _change, bool _inc, address _playerAddress) public onlyOwner {
-        if (_inc){
-            addressToPlayer[_playerAddress].rating += _change;
-        } else {
-            addressToPlayer[_playerAddress].rating -= _change;
-        }
-    } 
 
-    function createMatch(
-        string memory _matchId,
-        address _player1,
-        address _player2,
-        string memory _signature1,
-        string memory _signature2,
-        uint256 _stakeAmount
-    ) public onlyOwner {
-        Match storage newMatch = matchIdToMatch[_matchId];
-        
-        // Initialize arrays
-        newMatch.playerAddresses.push(_player1);
-        newMatch.playerAddresses.push(_player2);
-        newMatch.startSignatures.push(_signature1);
-        newMatch.startSignatures.push(_signature2);
-        newMatch.stakeAmount = _stakeAmount;
-        
-        // Update player match history
-        addressToPlayer[_player1].matchIds.push(uint(keccak256(abi.encodePacked(_matchId))));
-        addressToPlayer[_player2].matchIds.push(uint(keccak256(abi.encodePacked(_matchId))));
+    function getMatchesByPlayer(
+        address _playerAddress,
+        uint _limit
+    ) external view returns (Match[] memory) {
+        uint[] memory matchIds = addressToPlayer[_playerAddress].matchIds;
+
+        // If limit is 0 or greater than array length, return all matches
+        uint resultLength = (_limit == 0 || _limit > matchIds.length)
+            ? matchIds.length
+            : _limit;
+        Match[] memory matches = new Match[](resultLength);
+
+        // Start from the end of the array to get most recent matches first
+        for (uint i = 0; i < resultLength; i++) {
+            uint index = matchIds.length - resultLength + i;
+            matches[i] = matchIdToMatch[matchIds[index]];
+        }
+
+        return matches;
     }
-    
-    function getFullPlayerData(address _playerAddress) public view  returns (string memory username, address playerAddress, uint rating, uint[] memory matchIds, bool isRegistered) {
-    
-    Player storage player = addressToPlayer[_playerAddress];
-    return (player.username, player.playerAddress, player.rating, player.matchIds, player.isRegistered);
-    
+
+    function getFullPlayerData(
+        address _playerAddress
+    )
+        public
+        view
+        returns (
+            string memory username,
+            address playerAddress,
+            uint rating,
+            uint[] memory matchIds
+        )
+    {
+        Player storage player = addressToPlayer[_playerAddress];
+        return (
+            player.username,
+            player.playerAddress,
+            player.rating,
+            player.matchIds
+        );
     }
 
     function settleMatch(
-        string memory _matchId, 
-        string memory _moveHistory, 
+        uint _matchId,
+        string memory _moveHistory,
+        address _player1,
+        address _player2,
+        string memory _startSignature1,
+        string memory _startSignature2,
+        uint256 _stakeAmount,
         address _winnerAddress
     ) public onlyOwner {
         Match storage _match = matchIdToMatch[_matchId];
-        
-        // Prevent double settlement
-        require(!_match.isSettled, "Match already settled");
-        
+
         // Update match data
+        _match.matchId = _matchId;
+        _match.playerAddresses.push(_player1);
+        _match.playerAddresses.push(_player2);
+        _match.startSignatures.push(_startSignature1);
+        _match.startSignatures.push(_startSignature2);
+        _match.stakeAmount = _stakeAmount;
+
         _match.moveHistory = _moveHistory;
         _match.winnerAddress = _winnerAddress;
-        
+
+        addressToPlayer[_player1].matchIds.push(_matchId);
+        addressToPlayer[_player2].matchIds.push(_matchId);
+
         // Find loser address
         address loserAddress;
         if (_match.playerAddresses[0] == _winnerAddress) {
@@ -119,22 +135,28 @@ contract Gambit {
         } else {
             loserAddress = _match.playerAddresses[0];
         }
-        
+
+        addressToPlayer[_winnerAddress].rating += 20;
+        if (addressToPlayer[loserAddress].rating >= 20) {
+            addressToPlayer[loserAddress].rating -= 20;
+        }
+
         // Transfer stake from loser to winner
         require(
-            gambitToken.transferFrom(loserAddress, _winnerAddress, _match.stakeAmount),
+            gambitToken.transferFrom(
+                loserAddress,
+                _winnerAddress,
+                _match.stakeAmount
+            ),
             "Token transfer failed"
         );
-        
+
         // Mark as settled
         _match.isSettled = true;
     }
-    
+
     // Emergency function to update token contract if needed
     function updateTokenContract(address _newTokenAddress) external onlyOwner {
         gambitToken = IGambitToken(_newTokenAddress);
     }
 }
-
-
-

@@ -1,7 +1,320 @@
 import { createServer } from "node:http";
 import next from "next";
 import { Server } from "socket.io";
-import { verifyMessage } from "viem";
+import { http, publicActions, verifyMessage } from "viem";
+import { createWalletClient, createPublicClient } from "viem";
+import { foundry, scrollSepolia } from "viem/chains";
+import { privateKeyToAccount } from "viem/accounts";
+
+import * as dotenv from 'dotenv'
+dotenv.config({path:'.env.local'})
+
+const GAMBIT_ABI=[
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "_tokenAddress",
+				"type": "address"
+			}
+		],
+		"stateMutability": "nonpayable",
+		"type": "constructor"
+	},
+	{
+		"inputs": [],
+		"name": "AlreadyRegistered",
+		"type": "error"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "string",
+				"name": "_username",
+				"type": "string"
+			}
+		],
+		"name": "registerPlayer",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "_matchId",
+				"type": "uint256"
+			},
+			{
+				"internalType": "string",
+				"name": "_moveHistory",
+				"type": "string"
+			},
+			{
+				"internalType": "address",
+				"name": "_player1",
+				"type": "address"
+			},
+			{
+				"internalType": "address",
+				"name": "_player2",
+				"type": "address"
+			},
+			{
+				"internalType": "string",
+				"name": "_startSignature1",
+				"type": "string"
+			},
+			{
+				"internalType": "string",
+				"name": "_startSignature2",
+				"type": "string"
+			},
+			{
+				"internalType": "uint256",
+				"name": "_stakeAmount",
+				"type": "uint256"
+			},
+			{
+				"internalType": "address",
+				"name": "_winnerAddress",
+				"type": "address"
+			}
+		],
+		"name": "settleMatch",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "_newTokenAddress",
+				"type": "address"
+			}
+		],
+		"name": "updateTokenContract",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "UsernameAlreadyTaken",
+		"type": "error"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"name": "addressToPlayer",
+		"outputs": [
+			{
+				"internalType": "string",
+				"name": "username",
+				"type": "string"
+			},
+			{
+				"internalType": "address",
+				"name": "playerAddress",
+				"type": "address"
+			},
+			{
+				"internalType": "uint256",
+				"name": "rating",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "gambitToken",
+		"outputs": [
+			{
+				"internalType": "contract IGambitToken",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "_playerAddress",
+				"type": "address"
+			}
+		],
+		"name": "getFullPlayerData",
+		"outputs": [
+			{
+				"internalType": "string",
+				"name": "username",
+				"type": "string"
+			},
+			{
+				"internalType": "address",
+				"name": "playerAddress",
+				"type": "address"
+			},
+			{
+				"internalType": "uint256",
+				"name": "rating",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256[]",
+				"name": "matchIds",
+				"type": "uint256[]"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "_playerAddress",
+				"type": "address"
+			},
+			{
+				"internalType": "uint256",
+				"name": "_limit",
+				"type": "uint256"
+			}
+		],
+		"name": "getMatchesByPlayer",
+		"outputs": [
+			{
+				"components": [
+					{
+						"internalType": "uint256",
+						"name": "matchId",
+						"type": "uint256"
+					},
+					{
+						"internalType": "address[]",
+						"name": "playerAddresses",
+						"type": "address[]"
+					},
+					{
+						"internalType": "string[]",
+						"name": "startSignatures",
+						"type": "string[]"
+					},
+					{
+						"internalType": "string",
+						"name": "moveHistory",
+						"type": "string"
+					},
+					{
+						"internalType": "address",
+						"name": "winnerAddress",
+						"type": "address"
+					},
+					{
+						"internalType": "uint256",
+						"name": "stakeAmount",
+						"type": "uint256"
+					},
+					{
+						"internalType": "bool",
+						"name": "isSettled",
+						"type": "bool"
+					}
+				],
+				"internalType": "struct Gambit.Match[]",
+				"name": "",
+				"type": "tuple[]"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "string",
+				"name": "",
+				"type": "string"
+			}
+		],
+		"name": "isUsernameTaken",
+		"outputs": [
+			{
+				"internalType": "bool",
+				"name": "",
+				"type": "bool"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"name": "matchIdToMatch",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "matchId",
+				"type": "uint256"
+			},
+			{
+				"internalType": "string",
+				"name": "moveHistory",
+				"type": "string"
+			},
+			{
+				"internalType": "address",
+				"name": "winnerAddress",
+				"type": "address"
+			},
+			{
+				"internalType": "uint256",
+				"name": "stakeAmount",
+				"type": "uint256"
+			},
+			{
+				"internalType": "bool",
+				"name": "isSettled",
+				"type": "bool"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "owner",
+		"outputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	}
+]
+const GAMBIT_ADDRESS="0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512"
 
 const dev = process.env.NODE_ENV !== "production";
 const hostname = "localhost";
@@ -9,6 +322,17 @@ const port = process.env.PORT || 3000;
 
 const app = next({ dev, hostname, port });
 const handler = app.getRequestHandler();
+
+const account = privateKeyToAccount(process.env.PRIVATE_KEY)
+
+const walletClient  = createWalletClient({
+  account:account,
+  chain: foundry,
+  transport: http(),
+  
+}).extend(publicActions)
+
+
 
 app.prepare().then(() => {
   const httpServer = createServer(handler);
@@ -60,7 +384,7 @@ app.prepare().then(() => {
       game.playerColors.b = walletAddress;
       console.log("game is here ", game)
 
-      socket.join(roomId);
+      socket.join(roomId); 
       io.to(roomId).emit('match_found', game);
     });
 
@@ -117,8 +441,8 @@ app.prepare().then(() => {
           currentTurn: 'w',
           gameStatus: 'signing_start',
           winner: "",
-          start_sig_count: 0,
-          end_sig_count: 0,
+          start_sigs: [],
+          end_sigs: [],
           message: message // Store the message in the game object
         });
     
@@ -167,7 +491,7 @@ app.prepare().then(() => {
       socket.emit('game_data', (game));
     });
 
-    socket.on("sign", async({ roomId, signature, address }) => {
+    socket.on("sign_start", async({ roomId, signature, address }) => {
       console.log("Signature received from client:", { roomId, signature, address });
 
       const game = games.get(roomId);
@@ -189,11 +513,11 @@ app.prepare().then(() => {
         return
       }
       // Increment signature count
-      game.start_sig_count += 1;
-      console.log(`Signature count for game ${roomId}: ${game.start_sig_count}`);
+      game.start_sigs.push(signature);
+      console.log(`Signature count for game ${roomId}: ${game.start_sigs.length}`);
 
       // If both players have signed, start the game
-      if (game.start_sig_count === 2) {
+      if (game.start_sigs.length === 2) {
         console.log("Both players have signed. Starting game!");
         game.gameStatus = 'started';
 
@@ -202,6 +526,51 @@ app.prepare().then(() => {
       }
     });
 
+    socket.on("sign_end", async({ roomId, signature, address }) => {
+      console.log("Signature received from client:", { roomId, signature, address });
+
+      const game = games.get(roomId);
+      if (!game) {
+        console.log("Game not found for signature verification");
+        return;
+      }
+
+      const valid = await verifyMessage({
+        address: address ,
+        message: `Game History is:\n${game.compactHistory}`,
+        signature: signature 
+      })
+
+      console.log(valid)
+
+      if(!valid){
+        console.log("invalid signature")
+        return
+      }
+      // Increment signature count
+      game.end_sigs.push(signature);
+      console.log(`End signature count for game ${roomId}: ${game.end_sigs.length}`);
+
+      // If both players have signed, start the game
+      if (game.end_sigs.length === 2) {
+        console.log("Both players have signed. Ending game!");
+        game.gameStatus = 'ended';
+
+        const { request } = await walletClient.simulateContract({
+          address: GAMBIT_ADDRESS,
+          abi: GAMBIT_ABI,
+          functionName: 'settleMatch',
+          args:[Number(game.roomId), game.compactHistory, game.playerColors['w'], game.playerColors['b'], game.start_sigs[0], game.start_sigs[0], game.wager, game.winner   ]
+        })
+
+        console.log(request)
+        await walletClient.writeContract(request)
+
+        // Emit game_ended event to the room
+        io.to(roomId).emit('game_ended', (game));
+        games.delete(roomId);
+      }
+    });
 
 
     socket.on("get_challenges", () => {
@@ -337,22 +706,28 @@ app.prepare().then(() => {
       const game = games.get(roomId);
       if (!game) return;
 
-      game.gameStatus = "ended";
+      game.gameStatus = "ending";
       game.winner = winner;
 
       console.log("Compact game history:", game.compactHistory);
+      console.log("emitting game_ending from server")
 
 
-      io.to(roomId).emit('game_ended', {
+      io.to(roomId).emit('game_ending', {
         result,
         winner,
-        finalMove: game.moves[game.moves.length - 1]
+        finalMove: game.moves[game.moves.length - 1],
+        compactHistory:game.compactHistory
       });
 
 
       //gonna implement ranked rating adjustment logic here soon along with any wagers etc too.
+      console.log("ye dekh wager: ", game.wager)
+      console.log("ye dekh winner: ", game.winner)
+
+      console.log("ye dekh poora game data:", game)
       // Clean up the game
-      games.delete(roomId);
+      
     });
 
     // Resign handler

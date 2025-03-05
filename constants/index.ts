@@ -1,292 +1,307 @@
 export const GAMBIT_ABI=[
-    {
-        "type": "constructor",
-        "inputs": [
-            {
-                "name": "_tokenAddress",
-                "type": "address",
-                "internalType": "address"
-            }
-        ],
-        "stateMutability": "nonpayable"
-    },
-    {
-        "type": "function",
-        "name": "addressToPlayer",
-        "inputs": [
-            {
-                "name": "",
-                "type": "address",
-                "internalType": "address"
-            }
-        ],
-        "outputs": [
-            {
-                "name": "username",
-                "type": "string",
-                "internalType": "string"
-            },
-            {
-                "name": "playerAddress",
-                "type": "address",
-                "internalType": "address"
-            },
-            {
-                "name": "rating",
-                "type": "uint256",
-                "internalType": "uint256"
-            },
-            {
-                "name": "isRegistered",
-                "type": "bool",
-                "internalType": "bool"
-            }
-        ],
-        "stateMutability": "view"
-    },
-    {
-        "type": "function",
-        "name": "adjustRating",
-        "inputs": [
-            {
-                "name": "_change",
-                "type": "uint256",
-                "internalType": "uint256"
-            },
-            {
-                "name": "_inc",
-                "type": "bool",
-                "internalType": "bool"
-            },
-            {
-                "name": "_playerAddress",
-                "type": "address",
-                "internalType": "address"
-            }
-        ],
-        "outputs": [],
-        "stateMutability": "nonpayable"
-    },
-    {
-        "type": "function",
-        "name": "createMatch",
-        "inputs": [
-            {
-                "name": "_matchId",
-                "type": "string",
-                "internalType": "string"
-            },
-            {
-                "name": "_player1",
-                "type": "address",
-                "internalType": "address"
-            },
-            {
-                "name": "_player2",
-                "type": "address",
-                "internalType": "address"
-            },
-            {
-                "name": "_signature1",
-                "type": "string",
-                "internalType": "string"
-            },
-            {
-                "name": "_signature2",
-                "type": "string",
-                "internalType": "string"
-            },
-            {
-                "name": "_stakeAmount",
-                "type": "uint256",
-                "internalType": "uint256"
-            }
-        ],
-        "outputs": [],
-        "stateMutability": "nonpayable"
-    },
-    {
-        "type": "function",
-        "name": "gambitToken",
-        "inputs": [],
-        "outputs": [
-            {
-                "name": "",
-                "type": "address",
-                "internalType": "contract IGambitToken"
-            }
-        ],
-        "stateMutability": "view"
-    },
-    {
-        "type": "function",
-        "name": "getFullPlayerData",
-        "inputs": [
-            {
-                "name": "_playerAddress",
-                "type": "address",
-                "internalType": "address"
-            }
-        ],
-        "outputs": [
-            {
-                "name": "username",
-                "type": "string",
-                "internalType": "string"
-            },
-            {
-                "name": "playerAddress",
-                "type": "address",
-                "internalType": "address"
-            },
-            {
-                "name": "rating",
-                "type": "uint256",
-                "internalType": "uint256"
-            },
-            {
-                "name": "matchIds",
-                "type": "uint256[]",
-                "internalType": "uint256[]"
-            },
-            {
-                "name": "isRegistered",
-                "type": "bool",
-                "internalType": "bool"
-            }
-        ],
-        "stateMutability": "view"
-    },
-    {
-        "type": "function",
-        "name": "isUsernameTaken",
-        "inputs": [
-            {
-                "name": "",
-                "type": "string",
-                "internalType": "string"
-            }
-        ],
-        "outputs": [
-            {
-                "name": "",
-                "type": "bool",
-                "internalType": "bool"
-            }
-        ],
-        "stateMutability": "view"
-    },
-    {
-        "type": "function",
-        "name": "matchIdToMatch",
-        "inputs": [
-            {
-                "name": "",
-                "type": "string",
-                "internalType": "string"
-            }
-        ],
-        "outputs": [
-            {
-                "name": "matchId",
-                "type": "string",
-                "internalType": "string"
-            },
-            {
-                "name": "moveHistory",
-                "type": "string",
-                "internalType": "string"
-            },
-            {
-                "name": "winnerAddress",
-                "type": "address",
-                "internalType": "address"
-            },
-            {
-                "name": "stakeAmount",
-                "type": "uint256",
-                "internalType": "uint256"
-            },
-            {
-                "name": "isSettled",
-                "type": "bool",
-                "internalType": "bool"
-            }
-        ],
-        "stateMutability": "view"
-    },
-    {
-        "type": "function",
-        "name": "owner",
-        "inputs": [],
-        "outputs": [
-            {
-                "name": "",
-                "type": "address",
-                "internalType": "address"
-            }
-        ],
-        "stateMutability": "view"
-    },
-    {
-        "type": "function",
-        "name": "registerPlayer",
-        "inputs": [
-            {
-                "name": "_username",
-                "type": "string",
-                "internalType": "string"
-            }
-        ],
-        "outputs": [],
-        "stateMutability": "nonpayable"
-    },
-    {
-        "type": "function",
-        "name": "settleMatch",
-        "inputs": [
-            {
-                "name": "_matchId",
-                "type": "string",
-                "internalType": "string"
-            },
-            {
-                "name": "_moveHistory",
-                "type": "string",
-                "internalType": "string"
-            },
-            {
-                "name": "_winnerAddress",
-                "type": "address",
-                "internalType": "address"
-            }
-        ],
-        "outputs": [],
-        "stateMutability": "nonpayable"
-    },
-    {
-        "type": "function",
-        "name": "updateTokenContract",
-        "inputs": [
-            {
-                "name": "_newTokenAddress",
-                "type": "address",
-                "internalType": "address"
-            }
-        ],
-        "outputs": [],
-        "stateMutability": "nonpayable"
-    },
-    {
-        "type": "error",
-        "name": "AlreadyRegistered",
-        "inputs": []
-    },
-    {
-        "type": "error",
-        "name": "UsernameAlreadyTaken",
-        "inputs": []
-    }
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "_tokenAddress",
+				"type": "address"
+			}
+		],
+		"stateMutability": "nonpayable",
+		"type": "constructor"
+	},
+	{
+		"inputs": [],
+		"name": "AlreadyRegistered",
+		"type": "error"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "string",
+				"name": "_username",
+				"type": "string"
+			}
+		],
+		"name": "registerPlayer",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "_matchId",
+				"type": "uint256"
+			},
+			{
+				"internalType": "string",
+				"name": "_moveHistory",
+				"type": "string"
+			},
+			{
+				"internalType": "address",
+				"name": "_player1",
+				"type": "address"
+			},
+			{
+				"internalType": "address",
+				"name": "_player2",
+				"type": "address"
+			},
+			{
+				"internalType": "string",
+				"name": "_startSignature1",
+				"type": "string"
+			},
+			{
+				"internalType": "string",
+				"name": "_startSignature2",
+				"type": "string"
+			},
+			{
+				"internalType": "uint256",
+				"name": "_stakeAmount",
+				"type": "uint256"
+			},
+			{
+				"internalType": "address",
+				"name": "_winnerAddress",
+				"type": "address"
+			}
+		],
+		"name": "settleMatch",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "_newTokenAddress",
+				"type": "address"
+			}
+		],
+		"name": "updateTokenContract",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "UsernameAlreadyTaken",
+		"type": "error"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"name": "addressToPlayer",
+		"outputs": [
+			{
+				"internalType": "string",
+				"name": "username",
+				"type": "string"
+			},
+			{
+				"internalType": "address",
+				"name": "playerAddress",
+				"type": "address"
+			},
+			{
+				"internalType": "uint256",
+				"name": "rating",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "gambitToken",
+		"outputs": [
+			{
+				"internalType": "contract IGambitToken",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "_playerAddress",
+				"type": "address"
+			}
+		],
+		"name": "getFullPlayerData",
+		"outputs": [
+			{
+				"internalType": "string",
+				"name": "username",
+				"type": "string"
+			},
+			{
+				"internalType": "address",
+				"name": "playerAddress",
+				"type": "address"
+			},
+			{
+				"internalType": "uint256",
+				"name": "rating",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256[]",
+				"name": "matchIds",
+				"type": "uint256[]"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "_playerAddress",
+				"type": "address"
+			},
+			{
+				"internalType": "uint256",
+				"name": "_limit",
+				"type": "uint256"
+			}
+		],
+		"name": "getMatchesByPlayer",
+		"outputs": [
+			{
+				"components": [
+					{
+						"internalType": "uint256",
+						"name": "matchId",
+						"type": "uint256"
+					},
+					{
+						"internalType": "address[]",
+						"name": "playerAddresses",
+						"type": "address[]"
+					},
+					{
+						"internalType": "string[]",
+						"name": "startSignatures",
+						"type": "string[]"
+					},
+					{
+						"internalType": "string",
+						"name": "moveHistory",
+						"type": "string"
+					},
+					{
+						"internalType": "address",
+						"name": "winnerAddress",
+						"type": "address"
+					},
+					{
+						"internalType": "uint256",
+						"name": "stakeAmount",
+						"type": "uint256"
+					},
+					{
+						"internalType": "bool",
+						"name": "isSettled",
+						"type": "bool"
+					}
+				],
+				"internalType": "struct Gambit.Match[]",
+				"name": "",
+				"type": "tuple[]"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "string",
+				"name": "",
+				"type": "string"
+			}
+		],
+		"name": "isUsernameTaken",
+		"outputs": [
+			{
+				"internalType": "bool",
+				"name": "",
+				"type": "bool"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"name": "matchIdToMatch",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "matchId",
+				"type": "uint256"
+			},
+			{
+				"internalType": "string",
+				"name": "moveHistory",
+				"type": "string"
+			},
+			{
+				"internalType": "address",
+				"name": "winnerAddress",
+				"type": "address"
+			},
+			{
+				"internalType": "uint256",
+				"name": "stakeAmount",
+				"type": "uint256"
+			},
+			{
+				"internalType": "bool",
+				"name": "isSettled",
+				"type": "bool"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "owner",
+		"outputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	}
 ]
 export const GAMBIT_ADDRESS="0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512"
 
