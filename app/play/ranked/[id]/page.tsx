@@ -1,14 +1,15 @@
+//@ts-nocheck
 'use client';
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Chessboard } from 'react-chessboard';
 import { Chess } from 'chess.js';
 import { socket } from '@/lib/socket';
-import { useParams, usePathname } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import { useAccount, useSignMessage } from 'wagmi';
 
 export default function GamePage() {
   const [game, setGame] = useState(new Chess());
-  const [playerColor, setPlayerColor] = useState<'w' | 'b'>('w');
+  const [playerColor, setPlayerColor] = useState('w');
   const [isMyTurn, setIsMyTurn] = useState(false);
   const [gameData, setGameData] = useState(null);
   const [message, setMessage] = useState('');
@@ -19,18 +20,21 @@ export default function GamePage() {
   const [hasSignedEnding, setHasSignedEnding] = useState(false);
   const [gameHistory, setGameHistory] = useState('');
   const [isGameCompletelyOver, setIsGameCompletelyOver] = useState(false);
-
-
-  // Remove state for promotionPiece and use a ref instead
-  const promotionPieceRef = useRef('q');
+  const [moveHistory, setMoveHistory] = useState([]);
+  const [capturedPieces, setCapturedPieces] = useState({
+    w: { p: 0, n: 0, b: 0, r: 0, q: 0 },
+    b: { p: 0, n: 0, b: 0, r: 0, q: 0 }
+  });
+  const promotionPieceRef = useRef('');
+  const lastMoveRef = useRef(null); // Track the last move to avoid duplicate capture counting
 
   const params = useParams();
-  const gameId = params.id as string;
-  const pathname = usePathname();
+  const gameId = params.id;
   const { address } = useAccount();
 
 
-  // 1) Load game data from server
+
+  // Load game data from server
   useEffect(() => {
     if (!gameId || !address) return;
 
@@ -40,38 +44,34 @@ export default function GamePage() {
     });
 
     socket.on('game_data', (data) => {
+
+      console.log("game data aaya")
+      console.log(data)
       setGameData(data);
       setMessage(data.message);
 
-      console.log("game_data received: ")
-      console.log(data)
-
-      // Check if game is in signing state
       if (data.gameStatus === 'signing_start') {
-        console.log("state rn is signing start")
         setIsSigning(true);
       } else {
         setIsSigning(false);
-
       }
 
-      // Determine if you're white or black
       const isWhite = data.playerColors.w === address;
       setPlayerColor(isWhite ? 'w' : 'b');
 
+      if (data.captures) {
+        setCapturedPieces(data.captures);
+      }
     });
+
     socket.on('game_ended', (data) => {
-      console.log('Game has officially ended:', data);
       setIsGameCompletelyOver(true);
       setIsEndingSigning(false);
       setHasSignedEnding(false);
     });
 
     socket.on('game_ending', (data) => {
-      console.log('Game ending received:', data);
-      // Set the game history for signing
       if (data.compactHistory) {
-        console.log(data.compactHistory)
         setGameHistory(data.compactHistory);
         setIsEndingSigning(true);
       }
@@ -80,26 +80,26 @@ export default function GamePage() {
     return () => {
       socket.off('game_data');
       socket.off('game_ending');
-      socket.off('game_ended')
+      socket.off('game_ended');
     };
   }, [gameId, address]);
 
-  // NEW: Listen for game started event
+  // Listen for game started event
   useEffect(() => {
     socket.on('game_started', (data) => {
-      console.log('Game started:', data);
-
-      // FORCE a completely new object to ensure React detects change
       setGameData({ ...data });
-
-      // Game is no longer in signing state
       setIsSigning(false);
       setHasSigned(false);
 
-      // Initialize with a fresh chess board
-      setGame(new Chess());
+      const newGame = new Chess();
+      setGame(newGame);
 
-      // Update turn status - white always starts in chess
+      // Reset captured pieces
+      setCapturedPieces({
+        w: { p: 0, n: 0, b: 0, r: 0, q: 0 },
+        b: { p: 0, n: 0, b: 0, r: 0, q: 0 }
+      });
+
       const isWhite = data?.playerColors?.w === address;
       setPlayerColor(isWhite ? 'w' : 'b');
       setIsMyTurn(isWhite);
@@ -110,19 +110,18 @@ export default function GamePage() {
     };
   }, [address]);
 
-  // 2) Handle moves coming from the opponent
+  // Handle moves coming from the opponent
   useEffect(() => {
     if (!gameId) return;
 
-    socket.on('move', ({ from, to, promotion, whoseTurn, color }) => {
-      console.log('Received move:', { from, to, promotion, whoseTurn, color });
-
-      // Only apply the move if it's from the opponent
+    const handleMove = ({ from, to, promotion, whoseTurn, color, history, captures }) => {
+      // Apply the move to local game state
       if (color !== playerColor) {
         setGame((currentGame) => {
           const newGame = new Chess(currentGame.fen());
           try {
             newGame.move({ from, to, promotion });
+            setGameHistory(history);
             return newGame;
           } catch (error) {
             console.error('Invalid move received:', error);
@@ -131,64 +130,69 @@ export default function GamePage() {
         });
       }
 
-      // Update local "turn" state (only if not in signing state)
+      // Update captures from server state
+      if (captures) {
+        console.log("frontend mein captures here: ")
+        console.log(captures)
+        setCapturedPieces(captures);
+      }
+
       if (!isSigning) {
         setIsMyTurn(whoseTurn === playerColor);
       }
-    });
+    };
+
+    socket.off('move');
+    socket.on('move', handleMove);
 
     return () => {
       socket.off('move');
     };
   }, [gameId, playerColor, isSigning]);
 
-  // 3) The function that actually executes a move in Chess.js
-  function completeMove(from: string, to: string) {
-    // Prevent moves during signing state
+  // Execute a move in Chess.js
+  function completeMove(from, to) {
     if (isSigning || !isMyTurn) return false;
 
     const promotion = promotionPieceRef.current;
     try {
-      const move = game.move({
+      const moveDetails = game.move({
         from,
         to,
         promotion,
       });
 
-      if (move) {
+      if (moveDetails) {
         // Update board locally
         setGame(new Chess(game.fen()));
-
-        // It's now opponent's turn
         setIsMyTurn(false);
 
-        // Send move to server
+        // Send move to server (including capture info)
         socket.emit('make_move', {
           roomId: gameId,
           walletAddress: address,
           from,
           to,
-          piece: move.piece,
+          piece: moveDetails.piece,
           promotion,
+          captured: moveDetails.captured
         });
 
         return true;
       }
     } catch (error) {
       console.error('Error making move:', error);
-      return false;
     }
     return false;
   }
 
-  // 4) The onDrop handler (no custom popups)
-  function onDrop(sourceSquare: string, targetSquare: string) {
-    // Prevent moves during signing state
+  // The onDrop handler
+  function onDrop(sourceSquare, targetSquare) {
     if (isSigning || !isMyTurn) return false;
     return completeMove(sourceSquare, targetSquare);
   }
 
-  // 5) Check for game end (checkmate, draw, etc.)
+  // Check for game end
   useEffect(() => {
     if (game.isGameOver() && !isSigning) {
       let result = 'draw';
@@ -196,7 +200,6 @@ export default function GamePage() {
 
       if (game.isCheckmate()) {
         result = 'checkmate';
-        // In Chess.js, if it's checkmate and it's white's turn, black has won
         winner = game.turn() === 'w' ? 'b' : 'w';
       } else if (game.isDraw()) {
         if (game.isStalemate()) result = 'stalemate';
@@ -210,23 +213,29 @@ export default function GamePage() {
         result,
         winner: winner
           ? winner === 'w'
-            //@ts-ignore
             ? gameData?.playerColors.w
-            //@ts-ignore
             : gameData?.playerColors.b
           : null,
       });
     }
   }, [game, gameId, gameData, isSigning]);
 
-  // Log the current FEN for debugging
-  useEffect(() => {
-    console.log("Current FEN:", game.fen());
-  }, [game]);
+  // Function to get piece symbol for display
+  function getPieceSymbol(piece) {
+    const symbols = {
+      p: '♟',
+      n: '♞',
+      b: '♝',
+      r: '♜',
+      q: '♛',
+    };
+    return symbols[piece] || '';
+  }
 
   return (
     <div className="text-white mx-auto p-4 mt-[75px] min-h-screen w-full bg-[#594205]">
       <div className="max-w-3xl mx-auto">
+
         {isGameCompletelyOver ? (
           <div className="text-center p-8 bg-gradient-to-b from-[#906810] to-[#744D0B] text-white rounded-lg shadow-xl border-2 border-[#B88A24]">
             <h1 className="text-4xl font-bold mb-6">Game Over</h1>
@@ -242,12 +251,9 @@ export default function GamePage() {
           <>
             <div className="mb-4">
               <h1 className="text-2xl font-bold">
-                {/* @ts-ignore */}
-                    Ranked Game
+                {gameData.mode === 'ranked' ? 'Ranked Game' : 'Unranked Game'}
               </h1>
-              {/* @ts-ignore */}
               <p>Tier: {gameData.tier}</p>
-              {/* @ts-ignore */}
               {gameData.mode === 'ranked' && <p>Wager: {gameData.wager}</p>}
             </div>
 
@@ -257,7 +263,7 @@ export default function GamePage() {
                   <h2 className="font-bold text-lg mb-2">Waiting for opponent to sign...</h2>
                 ) : (
                   <>
-                    <h2 className="font-bold text-lg mb-2">Please sign the message to start the game</h2>
+                    <h2 className="font-bold text-lg mb-2">Please sign this message to start the game</h2>
                     <div className="bg-gray-100 p-2 rounded mb-4 font-mono text-sm overflow-auto">
                       {message}
                     </div>
@@ -281,7 +287,9 @@ export default function GamePage() {
               </div>
             ) : null}
 
-            {/* Add this after the isSigning section but before the chessboard */}
+
+
+            {/* Game ending signing section */}
             {isEndingSigning ? (
               <div className="p-4 bg-yellow-100 border border-yellow-400 text-yellow-700 rounded mb-4">
                 {hasSignedEnding ? (
@@ -302,7 +310,6 @@ export default function GamePage() {
                           const signature = await signMessageAsync({ message: signingMessage });
                           console.log('End Signature:', signature);
 
-                          // Emit the sign_end event with required data
                           socket.emit("sign_end", {
                             roomId: gameId,
                             signature: signature,
@@ -322,23 +329,61 @@ export default function GamePage() {
               </div>
             ) : null}
 
+            {/* Opponent's captured pieces (top) */}
+            <div className="mb-3  bg-[#3B2A0A] p-3 rounded-md border border-[#B88A24]">
+              <div className="captured-pieces">
+                <h3 className="text-sm font-bold mb-1">
+                  {playerColor === 'w' ? "Black's captures:" : "White's captures:"}
+                </h3>
+                <div className="flex space-x-2">
+                  {Object.entries(capturedPieces[playerColor === 'w' ? 'b' : 'w']).map(([piece, count]) => (
+                    count > 0 ? (
+                      <div key={`top-captured-${piece}`} className="flex items-center">
+                        <span className="text-xl text-white">{getPieceSymbol(piece)}</span>
+                        {count > 1 && <span className="text-xs ml-1">×{count}</span>}
+                      </div>
+                    ) : null
+                  ))}
+                  {!Object.values(capturedPieces[playerColor === 'w' ? 'b' : 'w']).some(count => count > 0) &&
+                    <span className="text-gray-400 text-sm">No pieces captured</span>}
+                </div>
+              </div>
+            </div>
+
             <div className="aspect-square">
               <Chessboard
                 position={game.fen()}
                 onPieceDrop={onDrop}
-                // @ts-ignore
                 onPromotionPieceSelect={(piece) => {
                   console.log("Selected promotion piece:", piece);
-                  // Convert "wN" or "bB" to "n" or "b"
-                  //@ts-ignore
                   const validPiece = piece.slice(1).toLowerCase();
                   promotionPieceRef.current = validPiece;
-                  return validPiece; // Return the transformed piece
+                  return validPiece;
                 }}
                 boardOrientation={playerColor === 'w' ? 'white' : 'black'}
                 areArrowsAllowed={true}
-
               />
+            </div>
+
+            {/* Your captured pieces (bottom) */}
+            <div className="mt-3 bg-[#3B2A0A] p-3 rounded-md border border-[#B88A24]">
+              <div className="captured-pieces">
+                <h3 className="text-sm font-bold mb-1">
+                  {playerColor === 'w' ? "White's captures:" : "Black's captures:"}
+                </h3>
+                <div className="flex space-x-2">
+                  {Object.entries(capturedPieces[playerColor]).map(([piece, count]) => (
+                    count > 0 ? (
+                      <div key={`bottom-captured-${piece}`} className="flex items-center">
+                        <span className="text-xl text-white">{getPieceSymbol(piece)}</span>
+                        {count > 1 && <span className="text-xs ml-1">×{count}</span>}
+                      </div>
+                    ) : null
+                  ))}
+                  {!Object.values(capturedPieces[playerColor]).some(count => count > 0) &&
+                    <span className="text-gray-400 text-sm">No pieces captured</span>}
+                </div>
+              </div>
             </div>
 
             <div className="mt-4">

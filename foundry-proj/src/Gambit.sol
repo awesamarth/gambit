@@ -102,9 +102,10 @@ contract Gambit {
         );
     }
 
-    function settleMatch(
+    function settleRankedOrUnrankedMatch(
         uint _matchId,
         string memory _moveHistory,
+        bool _ranked,
         address _player1,
         address _player2,
         string memory _startSignature1,
@@ -136,10 +137,13 @@ contract Gambit {
             loserAddress = _match.playerAddresses[0];
         }
 
+        if (_ranked){
         addressToPlayer[_winnerAddress].rating += 20;
         if (addressToPlayer[loserAddress].rating >= 20) {
             addressToPlayer[loserAddress].rating -= 20;
         }
+        }
+
 
         // Transfer stake from loser to winner
         require(
