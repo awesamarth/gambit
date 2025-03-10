@@ -436,12 +436,11 @@ app.prepare().then(() => {
             'w': username1,
             'b': username2
           },
-          moves: [],
           captures: {
             w: { p: 0, n: 0, b: 0, r: 0, q: 0 },
             b: { p: 0, n: 0, b: 0, r: 0, q: 0 }
           },
-          compactHistory: "",
+          formattedMoves:[],
           currentTurn: 'w',
           gameStatus: 'signing_start',
           winner: "",
@@ -482,7 +481,6 @@ app.prepare().then(() => {
           'b': ""
         },
         moves: [],
-        compactHistory: "",
         currentTurn: 'w',
         gameStatus: 'waiting',
         winner: ""
@@ -572,7 +570,7 @@ app.prepare().then(() => {
 
       const valid = await verifyMessage({
         address: address ,
-        message: `Game History is:\n${game.compactHistory}`,
+        message: `Game History is:\n${game.formattedMoves.join('')}`,
         signature: signature 
       })
 
@@ -595,7 +593,8 @@ app.prepare().then(() => {
           address: GAMBIT_ADDRESS,
           abi: GAMBIT_ABI,
           functionName: 'settleMatch',
-          args:[Number(game.roomId), game.compactHistory, game.playerColors['w'], game.playerColors['b'], game.start_sigs[0], game.start_sigs[0], game.wager, game.winner   ]
+          //change the line below, it won't be game.compactHistory now
+          args:[Number(game.roomId), game.formattedMoves.join(''), game.playerColors['w'], game.playerColors['b'], game.start_sigs[0], game.start_sigs[0], game.wager, game.winner   ]
         })
 
         console.log(request)
@@ -622,7 +621,7 @@ app.prepare().then(() => {
       console.log(`Sent ${availableChallenges.length} available challenges to client`);
     });
 
-    socket.on("make_move", ({ roomId, walletAddress, from, to, piece, promotion, captured }) => {
+    socket.on("make_move", ({ roomId, walletAddress, from, to, piece, promotion, captured, sanNotation }) => {
       console.log("make move received from client");
 
       console.log("here's captured")
@@ -635,17 +634,8 @@ app.prepare().then(() => {
       }
     
       // Update game state - store the complete move details
-      const moveData = {
-        from,
-        to,
-        color: game.currentTurn,
-        player: walletAddress,
-        piece,
-        promotion,
-        captured
-      };
+
       
-      game.moves.push(moveData);
       
       // Handle capture if a piece was captured
       if (captured) {
@@ -662,17 +652,27 @@ app.prepare().then(() => {
         game.captures[game.currentTurn][captured] = (game.captures[game.currentTurn][captured] || 0) + 1;
       }
     
-      console.log("from", from);
       console.log("to", to);
-      game.compactHistory += from + to;
+      
+
+
+      // if (piece !== 'p') {
+      //   // Non-pawn piece - add the piece letter
+      //   game.compactHistory += piece.toUpperCase() + to;
+      // } else {
+      //   // Pawn - just add destination
+      //   game.compactHistory += to;
+      // }
+      
     
       // Add promotion piece if there is one
-      if (promotion) {
-        game.compactHistory += promotion.toUpperCase();
-      }
+      // if (promotion) {
+      //   game.compactHistory += promotion.toUpperCase();
+      // }
     
       // Switch turns
       game.currentTurn = game.currentTurn === 'w' ? 'b' : 'w';
+      game.formattedMoves.push(sanNotation);
     
       // Broadcast move to room with current capture state
       console.log("emitting move event");
@@ -682,8 +682,9 @@ app.prepare().then(() => {
         color: game.currentTurn === 'w' ? 'b' : 'w',
         whoseTurn: game.currentTurn,
         promotion,
-        history: game.compactHistory,
-        captures: game.captures // Send the current capture state
+        // history: game.compactHistory,
+        captures: game.captures,
+        formattedMoves:game.formattedMoves
       });
     });
 
@@ -726,15 +727,13 @@ app.prepare().then(() => {
       game.gameStatus = "ending";
       game.winner = winner;
 
-      console.log("Compact game history:", game.compactHistory);
       console.log("emitting game_ending from server")
 
 
       io.to(roomId).emit('game_ending', {
         result,
         winner,
-        finalMove: game.moves[game.moves.length - 1],
-        compactHistory:game.compactHistory
+        history: game.formattedMoves ? game.formattedMoves.join('') : ''
       });
 
 
