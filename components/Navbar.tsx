@@ -55,12 +55,12 @@ export default function Navbar() {
         >
           Play
         </Link>
-        <Link
+        {/* <Link
           href="/leaderboard"
           className="text-white text-xl hover:text-gray-200 transition-colors"
         >
           Leaderboard
-        </Link>
+        </Link> */}
 
         {address ? (
           <div className="flex items-center gap-4 bg-gray-200 rounded-full px-4 py-2">

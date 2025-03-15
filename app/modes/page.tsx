@@ -24,9 +24,11 @@ export default function ModesPage() {
             // Check if user is registered (playerData[0] is not empty)
             //@ts-ignore
             setLocked(playerData[0] === "");
-            setLocked(false)
-            setLoading(false); //gonna delete after testing
+            setLoading(false);
         } else if (address) {
+            setLoading(false);
+        } else {
+            // Add this case to handle when there's no wallet connected
             setLoading(false);
         }
     }, [playerData, address]);

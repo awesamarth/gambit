@@ -12,21 +12,19 @@ import { useAccount } from 'wagmi';
 
 export default function PrivateRoom() {
   const [inputGameId, setInputGameId] = useState('');
-const [roomId, setRoomId] = useState("")
+  const [roomId, setRoomId] = useState("");
   const [wager, setWager] = useState(0);
+  const [username, setUsername] = useState("anon"); // Added username state
   const { toast } = useToast();
   const router = useRouter();
   const { address } = useAccount();
 
   const createGame = () => {
-
-
     if (!address) {
-      
       return;
     }
 
-    console.log("create game invoked")
+    console.log("create game invoked");
     socket.emit('create_room', {
       walletAddress: address,
       tier: 'open',
@@ -37,12 +35,12 @@ const [roomId, setRoomId] = useState("")
 
   const joinGame = () => {
     if (!address) {
-      console.log("address hi nahi hai bc")
+      console.log("address hi nahi hai bc");
       return;
     }
 
     if (!inputGameId.trim()) {
-      console.log("room Id hi nahi hai bc")
+      console.log("room Id hi nahi hai bc");
       return;
     }
 
@@ -54,19 +52,15 @@ const [roomId, setRoomId] = useState("")
 
   useEffect(() => {
     socket.on('private_room_created', ({ roomId }) => {
-      console.log("private room has been created")
-      setRoomId(roomId)
-
+      console.log("private room has been created");
+      setRoomId(roomId);
 
       // Optional: copy to clipboard
-      navigator.clipboard.writeText(roomId).then(() => {
-
-      });
+      navigator.clipboard.writeText(roomId).then(() => {});
     });
 
     socket.on('match_found', (gameData) => {
-
-      console.log("match has been found. router.pushing")
+      console.log("match has been found. router.pushing");
       router.push(`/play/private/${gameData.roomId}`);
     });
 
@@ -77,48 +71,82 @@ const [roomId, setRoomId] = useState("")
   }, [router, toast]);
 
   return (
-    <div className="max-w-4xl mt-[75px] mx-auto">
-      <Card className="p-8 mt-12 mb-6">
-        <h2 className="text-2xl font-bold mb-6">Private Game Room</h2>
-        
-        <div className="space-y-6">
-          <div className="space-y-2">
-            <Label htmlFor="wager">Wager Amount (optional)</Label>
-            <Input
-              id="wager"
-              type="number"
-              min="0"
-              placeholder="Enter wager amount"
-              value={wager}
-              onChange={(e) => setWager(Math.max(0, Number(e.target.value)))}
-              className="mb-4"
-            />
-          </div>
+    <div className="min-h-screen bg-gradient-to-b pt-12 from-[#594205] to-[#352702] text-white flex items-center justify-center">
+      <div className="container max-w-4xl px-4 py-8">
+        <div className="flex flex-col items-center">
+          <h1 className="text-4xl font-bold mb-8 text-center text-amber-300 tracking-wide">
+            Private Match
+          </h1>
 
-          <div className="flex flex-col sm:flex-row gap-4">
-            <Button 
-              onClick={createGame}
-              className="flex-1"
-            >
-              Create New Game {wager > 0 ? `(${wager} token wager)` : ''}
-            </Button>
-          </div>
+          <Card className="w-full bg-[#1F1A0E] border border-amber-900/50 rounded-xl shadow-xl overflow-hidden mb-8">
+            <div className="p-6 space-y-6">
+              <div className="space-y-2">
+                <Label htmlFor="wallet" className="text-amber-200 text-sm">Wallet Address</Label>
+                <div className="bg-black/30 p-3 text-white rounded-lg text-sm font-mono overflow-hidden text-ellipsis">
+                  {address || "Not connected"}
+                </div>
+              </div>
 
-          <div>{roomId?`waiting for opponent. room ID is: ${roomId}`:""}</div>
+              <div className="space-y-2 text-white">
+                <Label className="text-amber-200 text-sm">Username</Label>
+                <div className="bg-black/30 p-3 rounded-lg font-medium">
+                  {username || "anon"}
+                </div>
+              </div>
 
-          <div className="border-t pt-6 mt-6">
-            <h3 className="text-xl font-medium mb-4">Join Existing Game</h3>
-            <div className="flex flex-col sm:flex-row gap-4">
-              <Input
-                placeholder="Enter room ID to join"
-                value={inputGameId}
-                onChange={(e) => setInputGameId(e.target.value)}
-              />
-              <Button onClick={joinGame}>Join Game</Button>
+              <div className="space-y-2">
+                <Label htmlFor="wager" className="text-amber-200 text-sm">Wager Amount (optional)</Label>
+                <Input
+                  id="wager"
+                  type="number"
+                  min="0"
+                  placeholder="Enter wager amount"
+                  value={wager}
+                  onChange={(e) => setWager(Math.max(0, Number(e.target.value)))}
+                  className="bg-black/30 border-amber-900/50 text-white"
+                />
+              </div>
+
+              <Button 
+                onClick={createGame}
+                disabled={!address}
+                className="w-full py-6 text-lg font-bold bg-amber-600 hover:bg-amber-500 transition-all duration-200"
+              >
+                Create New Game {wager > 0 ? `(${wager} GBT)` : ''}
+              </Button>
+
+              {roomId && (
+                <div className="text-center p-4 bg-amber-900/20 rounded-lg">
+                  <p className="text-amber-200 mb-2">Waiting for opponent...</p>
+                  <p className="text-sm text-amber-200/70">Room ID: {roomId} <span className=' font-bold'>(copied to clipboard!)</span></p>
+                </div>
+              )}
+
+              <div className="border-t border-amber-900/30 pt-6 mt-6">
+                <h3 className="text-xl font-medium mb-4 text-amber-300">Join Existing Game</h3>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label className="text-amber-200 text-sm">Room ID</Label>
+                    <Input
+                      placeholder="Enter room ID to join"
+                      value={inputGameId}
+                      onChange={(e) => setInputGameId(e.target.value)}
+                      className="bg-black/30 border-amber-900/50 text-white"
+                    />
+                  </div>
+                  <Button 
+                    onClick={joinGame}
+                    disabled={!address || !inputGameId.trim()}
+                    className="w-full bg-amber-600 hover:bg-amber-500 transition-all duration-200"
+                  >
+                    Join Game
+                  </Button>
+                </div>
+              </div>
             </div>
-          </div>
+          </Card>
         </div>
-      </Card>
+      </div>
     </div>
   );
 }

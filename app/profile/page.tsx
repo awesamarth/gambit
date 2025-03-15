@@ -13,6 +13,7 @@ function truncateAddress(address: string) {
 export default function ProfilePage() {
     const { address } = useAccount();
     const [isLoading, setIsLoading] = useState(true);
+    const [isRegistered, setIsRegistered] = useState(false)
 
     // Get player data
     const { data: playerData, isLoading: isPlayerLoading } = useReadContract({
@@ -21,6 +22,20 @@ export default function ProfilePage() {
         functionName: "getFullPlayerData",
         args: [address]
     });
+
+    useEffect(() => {
+        if (playerData) {
+            // Check if user is registered (playerData[0] is not empty)
+            //@ts-ignore
+            setIsRegistered(!(playerData[0] === ""));
+            setIsLoading(false);
+        } else if (address) {
+            setIsLoading(false);
+        } else {
+            // Add this case to handle when there's no wallet connected
+            setIsLoading(false);
+        }
+    }, [playerData, address]);
 
     // Get token balance
     const { data: playerBalance } = useReadContract({
@@ -39,8 +54,6 @@ export default function ProfilePage() {
 
     console.log("ye dekh match data", matchesData)
 
-
-
     if (!address) {
         return (
             <div className="min-h-screen bg-[#594205] pt-[100px] px-6">
@@ -53,8 +66,8 @@ export default function ProfilePage() {
             </div>
         );
     }
-    //@ts-ignore
-    if (playerData && (!playerData[0] || playerData[0] === "")) {
+
+    if (address && !isLoading && !isRegistered) {
         return (
             <div className="min-h-screen bg-[#594205] pt-[100px] px-6">
                 <div className="max-w-4xl mx-auto bg-[#906810] rounded-lg p-8 shadow-lg text-white text-center">
@@ -70,7 +83,6 @@ export default function ProfilePage() {
             </div>
         );
     }
-
 
     // Extract player info from the data
     //@ts-ignore

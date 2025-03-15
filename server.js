@@ -10,309 +10,319 @@ import * as dotenv from 'dotenv'
 dotenv.config({path:'.env.local'})
 
 const GAMBIT_ABI=[
-	{
-		"inputs": [
-			{
-				"internalType": "address",
-				"name": "_tokenAddress",
-				"type": "address"
-			}
-		],
-		"stateMutability": "nonpayable",
-		"type": "constructor"
-	},
-	{
-		"inputs": [],
-		"name": "AlreadyRegistered",
-		"type": "error"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "string",
-				"name": "_username",
-				"type": "string"
-			}
-		],
-		"name": "registerPlayer",
-		"outputs": [],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "uint256",
-				"name": "_matchId",
-				"type": "uint256"
-			},
-			{
-				"internalType": "string",
-				"name": "_moveHistory",
-				"type": "string"
-			},
-			{
-				"internalType": "address",
-				"name": "_player1",
-				"type": "address"
-			},
-			{
-				"internalType": "address",
-				"name": "_player2",
-				"type": "address"
-			},
-			{
-				"internalType": "string",
-				"name": "_startSignature1",
-				"type": "string"
-			},
-			{
-				"internalType": "string",
-				"name": "_startSignature2",
-				"type": "string"
-			},
-			{
-				"internalType": "uint256",
-				"name": "_stakeAmount",
-				"type": "uint256"
-			},
-			{
-				"internalType": "address",
-				"name": "_winnerAddress",
-				"type": "address"
-			}
-		],
-		"name": "settleMatch",
-		"outputs": [],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "address",
-				"name": "_newTokenAddress",
-				"type": "address"
-			}
-		],
-		"name": "updateTokenContract",
-		"outputs": [],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"inputs": [],
-		"name": "UsernameAlreadyTaken",
-		"type": "error"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "address",
-				"name": "",
-				"type": "address"
-			}
-		],
-		"name": "addressToPlayer",
-		"outputs": [
-			{
-				"internalType": "string",
-				"name": "username",
-				"type": "string"
-			},
-			{
-				"internalType": "address",
-				"name": "playerAddress",
-				"type": "address"
-			},
-			{
-				"internalType": "uint256",
-				"name": "rating",
-				"type": "uint256"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [],
-		"name": "gambitToken",
-		"outputs": [
-			{
-				"internalType": "contract IGambitToken",
-				"name": "",
-				"type": "address"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "address",
-				"name": "_playerAddress",
-				"type": "address"
-			}
-		],
-		"name": "getFullPlayerData",
-		"outputs": [
-			{
-				"internalType": "string",
-				"name": "username",
-				"type": "string"
-			},
-			{
-				"internalType": "address",
-				"name": "playerAddress",
-				"type": "address"
-			},
-			{
-				"internalType": "uint256",
-				"name": "rating",
-				"type": "uint256"
-			},
-			{
-				"internalType": "uint256[]",
-				"name": "matchIds",
-				"type": "uint256[]"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "address",
-				"name": "_playerAddress",
-				"type": "address"
-			},
-			{
-				"internalType": "uint256",
-				"name": "_limit",
-				"type": "uint256"
-			}
-		],
-		"name": "getMatchesByPlayer",
-		"outputs": [
-			{
-				"components": [
-					{
-						"internalType": "uint256",
-						"name": "matchId",
-						"type": "uint256"
-					},
-					{
-						"internalType": "address[]",
-						"name": "playerAddresses",
-						"type": "address[]"
-					},
-					{
-						"internalType": "string[]",
-						"name": "startSignatures",
-						"type": "string[]"
-					},
-					{
-						"internalType": "string",
-						"name": "moveHistory",
-						"type": "string"
-					},
-					{
-						"internalType": "address",
-						"name": "winnerAddress",
-						"type": "address"
-					},
-					{
-						"internalType": "uint256",
-						"name": "stakeAmount",
-						"type": "uint256"
-					},
-					{
-						"internalType": "bool",
-						"name": "isSettled",
-						"type": "bool"
-					}
-				],
-				"internalType": "struct Gambit.Match[]",
-				"name": "",
-				"type": "tuple[]"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "string",
-				"name": "",
-				"type": "string"
-			}
-		],
-		"name": "isUsernameTaken",
-		"outputs": [
-			{
-				"internalType": "bool",
-				"name": "",
-				"type": "bool"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "uint256",
-				"name": "",
-				"type": "uint256"
-			}
-		],
-		"name": "matchIdToMatch",
-		"outputs": [
-			{
-				"internalType": "uint256",
-				"name": "matchId",
-				"type": "uint256"
-			},
-			{
-				"internalType": "string",
-				"name": "moveHistory",
-				"type": "string"
-			},
-			{
-				"internalType": "address",
-				"name": "winnerAddress",
-				"type": "address"
-			},
-			{
-				"internalType": "uint256",
-				"name": "stakeAmount",
-				"type": "uint256"
-			},
-			{
-				"internalType": "bool",
-				"name": "isSettled",
-				"type": "bool"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [],
-		"name": "owner",
-		"outputs": [
-			{
-				"internalType": "address",
-				"name": "",
-				"type": "address"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	}
+  {
+      "type": "constructor",
+      "inputs": [
+          {
+              "name": "_tokenAddress",
+              "type": "address",
+              "internalType": "address"
+          }
+      ],
+      "stateMutability": "nonpayable"
+  },
+  {
+      "type": "function",
+      "name": "addressToPlayer",
+      "inputs": [
+          {
+              "name": "",
+              "type": "address",
+              "internalType": "address"
+          }
+      ],
+      "outputs": [
+          {
+              "name": "username",
+              "type": "string",
+              "internalType": "string"
+          },
+          {
+              "name": "playerAddress",
+              "type": "address",
+              "internalType": "address"
+          },
+          {
+              "name": "rating",
+              "type": "uint256",
+              "internalType": "uint256"
+          }
+      ],
+      "stateMutability": "view"
+  },
+  {
+      "type": "function",
+      "name": "gambitToken",
+      "inputs": [],
+      "outputs": [
+          {
+              "name": "",
+              "type": "address",
+              "internalType": "contract IGambitToken"
+          }
+      ],
+      "stateMutability": "view"
+  },
+  {
+      "type": "function",
+      "name": "getFullPlayerData",
+      "inputs": [
+          {
+              "name": "_playerAddress",
+              "type": "address",
+              "internalType": "address"
+          }
+      ],
+      "outputs": [
+          {
+              "name": "username",
+              "type": "string",
+              "internalType": "string"
+          },
+          {
+              "name": "playerAddress",
+              "type": "address",
+              "internalType": "address"
+          },
+          {
+              "name": "rating",
+              "type": "uint256",
+              "internalType": "uint256"
+          },
+          {
+              "name": "matchIds",
+              "type": "uint256[]",
+              "internalType": "uint256[]"
+          }
+      ],
+      "stateMutability": "view"
+  },
+  {
+      "type": "function",
+      "name": "getMatchesByPlayer",
+      "inputs": [
+          {
+              "name": "_playerAddress",
+              "type": "address",
+              "internalType": "address"
+          },
+          {
+              "name": "_limit",
+              "type": "uint256",
+              "internalType": "uint256"
+          }
+      ],
+      "outputs": [
+          {
+              "name": "",
+              "type": "tuple[]",
+              "internalType": "struct Gambit.Match[]",
+              "components": [
+                  {
+                      "name": "matchId",
+                      "type": "uint256",
+                      "internalType": "uint256"
+                  },
+                  {
+                      "name": "playerAddresses",
+                      "type": "address[]",
+                      "internalType": "address[]"
+                  },
+                  {
+                      "name": "startSignatures",
+                      "type": "string[]",
+                      "internalType": "string[]"
+                  },
+                  {
+                      "name": "moveHistory",
+                      "type": "string",
+                      "internalType": "string"
+                  },
+                  {
+                      "name": "winnerAddress",
+                      "type": "address",
+                      "internalType": "address"
+                  },
+                  {
+                      "name": "stakeAmount",
+                      "type": "uint256",
+                      "internalType": "uint256"
+                  },
+                  {
+                      "name": "isSettled",
+                      "type": "bool",
+                      "internalType": "bool"
+                  }
+              ]
+          }
+      ],
+      "stateMutability": "view"
+  },
+  {
+      "type": "function",
+      "name": "isUsernameTaken",
+      "inputs": [
+          {
+              "name": "",
+              "type": "string",
+              "internalType": "string"
+          }
+      ],
+      "outputs": [
+          {
+              "name": "",
+              "type": "bool",
+              "internalType": "bool"
+          }
+      ],
+      "stateMutability": "view"
+  },
+  {
+      "type": "function",
+      "name": "matchIdToMatch",
+      "inputs": [
+          {
+              "name": "",
+              "type": "uint256",
+              "internalType": "uint256"
+          }
+      ],
+      "outputs": [
+          {
+              "name": "matchId",
+              "type": "uint256",
+              "internalType": "uint256"
+          },
+          {
+              "name": "moveHistory",
+              "type": "string",
+              "internalType": "string"
+          },
+          {
+              "name": "winnerAddress",
+              "type": "address",
+              "internalType": "address"
+          },
+          {
+              "name": "stakeAmount",
+              "type": "uint256",
+              "internalType": "uint256"
+          },
+          {
+              "name": "isSettled",
+              "type": "bool",
+              "internalType": "bool"
+          }
+      ],
+      "stateMutability": "view"
+  },
+  {
+      "type": "function",
+      "name": "owner",
+      "inputs": [],
+      "outputs": [
+          {
+              "name": "",
+              "type": "address",
+              "internalType": "address"
+          }
+      ],
+      "stateMutability": "view"
+  },
+  {
+      "type": "function",
+      "name": "registerPlayer",
+      "inputs": [
+          {
+              "name": "_username",
+              "type": "string",
+              "internalType": "string"
+          }
+      ],
+      "outputs": [],
+      "stateMutability": "payable"
+  },
+  {
+      "type": "function",
+      "name": "settleMatch",
+      "inputs": [
+          {
+              "name": "_matchId",
+              "type": "uint256",
+              "internalType": "uint256"
+          },
+          {
+              "name": "_moveHistory",
+              "type": "string",
+              "internalType": "string"
+          },
+          {
+              "name": "_ranked",
+              "type": "bool",
+              "internalType": "bool"
+          },
+          {
+              "name": "_player1",
+              "type": "address",
+              "internalType": "address"
+          },
+          {
+              "name": "_player2",
+              "type": "address",
+              "internalType": "address"
+          },
+          {
+              "name": "_startSignature1",
+              "type": "string",
+              "internalType": "string"
+          },
+          {
+              "name": "_startSignature2",
+              "type": "string",
+              "internalType": "string"
+          },
+          {
+              "name": "_stakeAmount",
+              "type": "uint256",
+              "internalType": "uint256"
+          },
+          {
+              "name": "_winnerAddress",
+              "type": "address",
+              "internalType": "address"
+          }
+      ],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+  },
+  {
+      "type": "function",
+      "name": "updateTokenContract",
+      "inputs": [
+          {
+              "name": "_newTokenAddress",
+              "type": "address",
+              "internalType": "address"
+          }
+      ],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+  },
+  {
+      "type": "error",
+      "name": "AlreadyRegistered",
+      "inputs": []
+  },
+  {
+      "type": "error",
+      "name": "InsufficientEther",
+      "inputs": []
+  },
+  {
+      "type": "error",
+      "name": "UsernameAlreadyTaken",
+      "inputs": []
+  }
 ]
 const GAMBIT_ADDRESS="0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512"
 
@@ -374,19 +384,6 @@ app.prepare().then(() => {
 
 
 
-    socket.on("join_room", ({ walletAddress, roomId }) => {
-      console.log("join room received from client")
-      const game = games.get(roomId);
-
-      if (!game) return;
-
-
-      game.playerColors.b = walletAddress;
-      console.log("game is here ", game)
-
-      socket.join(roomId); 
-      io.to(roomId).emit('match_found', game);
-    });
 
     //for ranked and unranked modes
     socket.on("join_lobby", ({ walletAddress, username, tier, rankedOrUnranked }) => {
@@ -446,7 +443,7 @@ app.prepare().then(() => {
           winner: "",
           start_sigs: [],
           end_sigs: [],
-          message: message // Store the message in the game object
+          message: message 
         });
     
         if (player1Socket && player2Socket) {
@@ -464,26 +461,36 @@ app.prepare().then(() => {
     });
 
     //for arena and private matches
-    socket.on("create_room", ({ walletAddress, tier, wager, isChallenge }) => {
+    socket.on("create_room", ({ walletAddress, tier, wager, isChallenge, username }) => {
       console.log("create room received")
       socket.walletAddress = walletAddress;
-      walletToSocket.set(walletAddress, socket);
+      socket.username=username;
 
       const roomId = Date.now().toString();
       const roomData = {
         roomId,
         mode: "unranked",
         tier,
-        wager,
-        capturedPieces:{w:[], b:[]},
+        wager: wager,
         playerColors: {
           'w': walletAddress,
           'b': ""
         },
-        moves: [],
+        playerUsernames: {
+          'w': username || "Player 1",
+          'b': ""
+        },
+        captures: {
+          w: { p: 0, n: 0, b: 0, r: 0, q: 0 },
+          b: { p: 0, n: 0, b: 0, r: 0, q: 0 }
+        },
+        formattedMoves:[],
         currentTurn: 'w',
         gameStatus: 'waiting',
-        winner: ""
+        winner: "",
+        start_sigs: [],
+        end_sigs: [],
+        message: "" // Store the message in the game object
       };
 
       // Store in appropriate map(s)
@@ -502,6 +509,26 @@ app.prepare().then(() => {
 
     });
 
+    socket.on("join_room", ({ walletAddress, roomId, username }) => {
+      console.log("join room received from client")
+      const game = games.get(roomId);
+
+      if (!game) return;
+
+      const currentTime = new Date().toUTCString();
+      
+      
+      
+      game.playerColors.b = walletAddress;
+      game.gameStatus= "signing_start"
+      game.playerColors['b']=walletAddress
+      game.playerUsernames['b']= username || "Player 2"
+      const message = `${game.playerUsernames['w']} vs ${game.playerUsernames['b']} | ${game.tier} | ${currentTime}`;
+      game.message=message
+      console.log("game is here ", game)
+      socket.join(roomId); 
+      io.to(roomId).emit('match_found', game);
+    });
 
     socket.on("get_game_data", ({ roomId, walletAddress }) => {
       console.log("room id idhar hai", roomId)
@@ -588,17 +615,21 @@ app.prepare().then(() => {
       if (game.end_sigs.length === 2) {
         console.log("Both players have signed. Ending game!");
         game.gameStatus = 'ended';
-
+        console.log("game status while ending is: ")
+        console.log(game)
+        const ranked = game.mode==="ranked"?true:false
         const { request } = await walletClient.simulateContract({
           address: GAMBIT_ADDRESS,
           abi: GAMBIT_ABI,
           functionName: 'settleMatch',
-          //change the line below, it won't be game.compactHistory now
-          args:[Number(game.roomId), game.formattedMoves.join(''), game.playerColors['w'], game.playerColors['b'], game.start_sigs[0], game.start_sigs[0], game.wager, game.winner   ]
+          args:[
+            Number(game.roomId), game.formattedMoves.join(''), ranked, game.playerColors['w'], game.playerColors['b'], 
+            game.start_sigs[0], game.start_sigs[1], game.wager, game.winner]
         })
 
-        console.log(request)
-        await walletClient.writeContract(request)
+        const result = await walletClient.writeContract(request)
+        console.log("ye dekh result")
+        console.log(result)
 
         // Emit game_ended event to the room
         io.to(roomId).emit('game_ended', (game));
