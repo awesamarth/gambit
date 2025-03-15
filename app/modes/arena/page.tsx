@@ -8,9 +8,10 @@ import { Label } from "@/components/ui/label";
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { getTierFromRating, Tier } from '@/utils';
-import { useAccount } from 'wagmi';
+import { useAccount, useReadContract } from 'wagmi';
 import { socket } from '@/lib/socket';
 import { useRouter } from 'next/navigation';
+import { GAMBIT_ABI, GAMBIT_ADDRESS } from '@/constants';
 
 type Challenge = {
   roomId: string;
@@ -32,11 +33,35 @@ export default function ArenaPage() {
   const [isWaiting, setIsWaiting] = useState<boolean>(false);
   const [waitingRoomId, setWaitingRoomId] = useState<string>("");
   const [challenges, setChallenges] = useState<Challenge[]>([]);
-  const [username, setUsername] = useState("")
+  const [username, setUsername] = useState("anon")
 
   const { toast } = useToast();
   const router = useRouter();
   const { address } = useAccount();
+
+
+  const playerData = useReadContract({
+        abi: GAMBIT_ABI,
+        address: GAMBIT_ADDRESS,
+        functionName: "getFullPlayerData",
+        args: [address]
+      })?.data;
+    
+      useEffect(() => {
+        if (playerData) {
+   
+          //@ts-ignore
+          setUsername(playerData[0]);
+          //@ts-ignore
+          setTier(getTierFromRating(Number(playerData[2])));
+          
+    
+        }
+      }, [playerData]);
+    
+  
+  
+  
 
   useEffect(() => {
     // Demo rating fetch - replace with actual API call
@@ -107,7 +132,8 @@ export default function ArenaPage() {
 
     socket.emit('join_room', {
       walletAddress: address,
-      roomId: challenge.roomId
+      roomId: challenge.roomId,
+      username:username
     });
   };
 
@@ -132,7 +158,7 @@ export default function ArenaPage() {
               <div className="space-y-2 text-white">
                 <Label className="text-amber-200 text-sm">Username</Label>
                 <div className="bg-black/30 p-3 rounded-lg font-medium">
-                  {username || "anon"}
+                  {username}
                 </div>
               </div>
   
@@ -203,7 +229,7 @@ export default function ArenaPage() {
                       </div>
                       <div className="flex justify-between">
                         <Label className="text-amber-200 text-sm">Wager:</Label>
-                        <span className="font-medium text-white">{challenge.wager || 0} tokens</span>
+                        <span className="font-medium text-white">{challenge.wager || 0} GBT</span>
                       </div>
                       <div className="flex justify-between">
                         <Label className="text-amber-200 text-sm">Creator:</Label>

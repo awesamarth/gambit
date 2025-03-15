@@ -18,8 +18,6 @@ export default function Home() {
   const [tier, setTier] = useState<Tier>('novice');
   const [isWaiting, setIsWaiting] = useState(false);
   const [username, setUsername] = useState("");
-  const [isEditingUsername, setIsEditingUsername] = useState(false);
-  const [tempUsername, setTempUsername] = useState("");
   const router = useRouter();
   const { address } = useAccount();
 
@@ -36,8 +34,7 @@ export default function Home() {
       setTier(getTierFromRating(Number(playerData[2])));
       //@ts-ignore
       setUsername(playerData[0]);
-      //@ts-ignore
-      setTempUsername(playerData[0]);
+
     }
   }, [playerData]);
 

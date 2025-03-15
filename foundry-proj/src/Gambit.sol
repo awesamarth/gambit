@@ -9,12 +9,14 @@ interface IGambitToken is IERC20 {
     function mintAndApproveGambit(address player, uint256 amount) external;
 }
 contract Gambit {
-    address public owner;
-    IGambitToken public gambitToken;
-
     error AlreadyRegistered();
     error UsernameAlreadyTaken();
     error InsufficientEther();
+
+    address public owner;
+    IGambitToken public gambitToken;
+    uint totalPlayerCount;
+
 
     constructor(address _tokenAddress) {
         owner = msg.sender;
@@ -62,7 +64,9 @@ contract Gambit {
         addressToPlayer[msg.sender].username = _username;
         addressToPlayer[msg.sender].playerAddress = msg.sender;
         isUsernameTaken[_username] = true;
+        totalPlayerCount++;
         gambitToken.mintAndApproveGambit(msg.sender, 200 * 10 ** 18); // 200 full GBT tokens
+    
     }
 
     function getMatchesByPlayer(

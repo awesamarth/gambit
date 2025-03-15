@@ -8,7 +8,8 @@ import { Label } from '@/components/ui/label';
 import { socket } from '@/lib/socket';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
-import { useAccount } from 'wagmi';
+import { useAccount, useReadContract } from 'wagmi';
+import { GAMBIT_ABI, GAMBIT_ADDRESS } from '@/constants';
 
 export default function PrivateRoom() {
   const [inputGameId, setInputGameId] = useState('');
@@ -19,6 +20,25 @@ export default function PrivateRoom() {
   const router = useRouter();
   const { address } = useAccount();
 
+    const playerData = useReadContract({
+      abi: GAMBIT_ABI,
+      address: GAMBIT_ADDRESS,
+      functionName: "getFullPlayerData",
+      args: [address]
+    })?.data;
+  
+    useEffect(() => {
+      if (playerData) {
+ 
+        //@ts-ignore
+        setUsername(playerData[0]);
+  
+      }
+    }, [playerData]);
+  
+
+
+
   const createGame = () => {
     if (!address) {
       return;
@@ -28,6 +48,7 @@ export default function PrivateRoom() {
     socket.emit('create_room', {
       walletAddress: address,
       tier: 'open',
+      username:username,
       wager: Number(wager),
       isChallenge: false
     });
@@ -46,7 +67,8 @@ export default function PrivateRoom() {
 
     socket.emit('join_room', {
       walletAddress: address,
-      roomId: inputGameId
+      roomId: inputGameId,
+      username:username
     });
   };
 
