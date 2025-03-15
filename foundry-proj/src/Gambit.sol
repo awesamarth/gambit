@@ -14,6 +14,7 @@ contract Gambit {
 
     error AlreadyRegistered();
     error UsernameAlreadyTaken();
+    error InsufficientEther();
 
     constructor(address _tokenAddress) {
         owner = msg.sender;
@@ -39,20 +40,24 @@ contract Gambit {
         string moveHistory;
         address winnerAddress;
         uint256 stakeAmount;
-        bool isSettled;
+        bool isSettled ;
     }
 
     mapping(address => Player) public addressToPlayer;
     mapping(uint => Match) public matchIdToMatch;
     mapping(string => bool) public isUsernameTaken;
 
-    function registerPlayer(string memory _username) public {
+    function registerPlayer(string memory _username) external payable{
         if (bytes(addressToPlayer[msg.sender].username).length != 0) {
             
             revert AlreadyRegistered();
         }
+
         if (isUsernameTaken[_username]) {
             revert UsernameAlreadyTaken();
+        }
+        if (msg.value< 0.01 ether){
+            revert InsufficientEther();
         }
         addressToPlayer[msg.sender].username = _username;
         addressToPlayer[msg.sender].playerAddress = msg.sender;
@@ -102,7 +107,7 @@ contract Gambit {
         );
     }
 
-    function settleRankedOrUnrankedMatch(
+    function settleMatch(
         uint _matchId,
         string memory _moveHistory,
         bool _ranked,
@@ -150,7 +155,7 @@ contract Gambit {
             gambitToken.transferFrom(
                 loserAddress,
                 _winnerAddress,
-                _match.stakeAmount
+                _match.stakeAmount*10**18
             ),
             "Token transfer failed"
         );

@@ -6,8 +6,15 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 
 
 contract GambitToken is ERC20, Ownable {
+    
+    error InsufficientEther();
+    
     // Game contract address that will handle token transfers
+    
     address public gambitContract;
+    uint constant PRICE_PER_FULL_TOKEN= 10**14 ;
+    
+
     
     constructor() ERC20("Gambit Token", "GBT") Ownable(msg.sender) {}
     
@@ -22,17 +29,26 @@ contract GambitToken is ERC20, Ownable {
     }
     
     // Mint tokens to a player
-    function mint(address to, uint256 amount) public onlyOwnerOrGambit {
-        _mint(to, amount);
+    function mint(address _to, uint256 _amount) public onlyOwnerOrGambit {
+        _mint(_to, _amount);
+    }
+
+    function buyTokens(uint256 _fullTokenAmount) external payable{
+        if (msg.value < _fullTokenAmount * PRICE_PER_FULL_TOKEN){
+            revert InsufficientEther();
+        }
+
+        _mint(msg.sender, _fullTokenAmount*10**18);
+
     }
 
     
     
-    function mintAndApproveGambit(address player, uint256 amount) external onlyOwnerOrGambit {
+    function mintAndApproveGambit(address _player, uint256 _amount) external onlyOwnerOrGambit {
         require(gambitContract != address(0), "Gambit contract not set");
         
         // Mint tokens to player
-        _mint(player, amount);
-        _approve(player, gambitContract, type(uint256).max);
+        _mint(_player, _amount);
+        _approve(_player, gambitContract, type(uint256).max);
     }
 }
