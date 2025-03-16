@@ -9,7 +9,7 @@ export default function Leaderboard() {
             </h1>
             <div className="w-full max-w-md bg-[#1F1A0E] border border-amber-900/50 rounded-xl shadow-xl overflow-hidden mb-8 p-6">
               <p className="text-amber-200 mb-6 text-center">
-                We're working hard to bring you the ultimate chess ranking experience. Check back later to see where you stand!
+                We&apos;re working hard to bring you the ultimate chess ranking experience. Check back later to see where you stand!
               </p>
               <div className="flex justify-center">
                 <a 
