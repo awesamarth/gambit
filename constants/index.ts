@@ -1,3 +1,9 @@
+export const LOCAL_TOKEN_ADDRESS="0x5FbDB2315678afecb367f032d93F642f64180aa3"
+export const LOCAL_GAMBIT_ADDRESS="0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512"
+
+export const GAMBIT_TOKEN_ADDRESS="0x89B8eDbfBb7F0CEd408140D1bf2B16964E124A98"
+export const GAMBIT_ADDRESS="0x8243c5735a9cf61ef356a8a11cfa42f87573ac5f"
+
 export const GAMBIT_ABI=[
     {
         "type": "constructor",
@@ -313,9 +319,6 @@ export const GAMBIT_ABI=[
         "inputs": []
     }
 ]
-export const GAMBIT_ADDRESS="0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512"
-
-
 export const GAMBIT_TOKEN_ABI=[
     {
         "type": "constructor",
@@ -785,4 +788,5 @@ export const GAMBIT_TOKEN_ABI=[
         ]
     }
 ]
-export const GAMBIT_TOKEN_ADDRESS="0x5FbDB2315678afecb367f032d93F642f64180aa3"
+
+

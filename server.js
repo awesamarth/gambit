@@ -324,7 +324,7 @@ const GAMBIT_ABI=[
       "inputs": []
   }
 ]
-const GAMBIT_ADDRESS="0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512"
+const GAMBIT_ADDRESS="0x8243c5735a9cf61ef356a8a11cfa42f87573ac5f"
 
 const dev = process.env.NODE_ENV !== "production";
 const hostname = "localhost";
@@ -337,7 +337,7 @@ const account = privateKeyToAccount(process.env.PRIVATE_KEY)
 
 const walletClient  = createWalletClient({
   account:account,
-  chain: foundry,
+  chain: scrollSepolia,
   transport: http(),
   
 }).extend(publicActions)
