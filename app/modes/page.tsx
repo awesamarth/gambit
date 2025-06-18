@@ -28,6 +28,7 @@ export default function ModesPage() {
         } else if (address) {
             setLoading(false);
         } else {
+            console.log("no wallet connected")
             // Add this case to handle when there's no wallet connected
             setLoading(false);
         }

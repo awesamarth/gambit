@@ -14,7 +14,7 @@ import { Loader2, Edit2 } from 'lucide-react';
 export default function Home() {
   type GameMode = 'ranked' | 'unranked';
 
-  const [mode, setMode] = useState<GameMode>('ranked');
+  const [mode, setMode] = useState<GameMode>('unranked');
   const [tier, setTier] = useState<Tier>('novice');
   const [isWaiting, setIsWaiting] = useState(false);
   const [username, setUsername] = useState("");

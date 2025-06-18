@@ -338,7 +338,7 @@ const account = privateKeyToAccount(process.env.PRIVATE_KEY)
 const walletClient  = createWalletClient({
   account:account,
   chain: scrollSepolia,
-  transport: http(),
+  transport: http("https://scroll-sepolia.chainstacklabs.com"),
   
 }).extend(publicActions)
 
