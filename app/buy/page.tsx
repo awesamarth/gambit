@@ -19,7 +19,7 @@ export default function BuyTokens() {
   
 
   // Price calculation
-  const pricePerHundred = 0.01; // ETH
+  const pricePerHundred = 0.0001; // ETH
   const totalPrice = (tokenAmount / 100) * pricePerHundred;
 
 
@@ -145,7 +145,7 @@ export default function BuyTokens() {
                   <div className="bg-amber-900/20 p-4 rounded-lg">
                     <div className="flex justify-between text-amber-200">
                       <span>Price per 100 tokens:</span>
-                      <span>0.01 ETH</span>
+                      <span>0.0001 ETH</span>
                     </div>
                     <div className="flex justify-between mt-2 text-lg font-bold text-white">
                       <span>Total price:</span>

@@ -30,7 +30,7 @@ export default function RegisterPage() {
       address:GAMBIT_ADDRESS,
       functionName: "registerPlayer",
       args:[username],
-      value: parseEther('0.01')
+      value: parseEther('0.0001')
     })
 
       // Redirect to modes page after successful registration
@@ -67,7 +67,7 @@ export default function RegisterPage() {
               <div className="bg-amber-900/20 p-4 rounded-lg text-sm">
                 <p className="font-medium mb-2 text-amber-200">Registration Benefits:</p>
                 <ul className="list-disc pl-4 space-y-1 text-white">
-                  <li>2x joining bonus! Receive <b>200 GBT</b> tokens for just 0.01 ETH!</li>
+                  <li>2x joining bonus! Receive <b>200 GBT</b> tokens for just 0.0001 ETH!</li>
                   <li>Play in ranked and wager matches</li>
                   <li>Create and join private rooms</li>
                   <li>Track your performance on the leaderboard (coming soon)</li>
@@ -79,7 +79,7 @@ export default function RegisterPage() {
                 disabled={isRegistering || !username.trim() || !address}
                 className="w-full py-6 text-lg font-bold bg-amber-600 hover:bg-amber-500 transition-all duration-200"
               >
-                {isRegistering ? 'Registering...' : 'Register (0.01 ETH)'}
+                {isRegistering ? 'Registering...' : 'Register (0.0001 ETH)'}
               </Button>
   
               {!address && (

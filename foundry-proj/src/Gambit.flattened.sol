@@ -753,7 +753,7 @@ contract Gambit {
         if (isUsernameTaken[_username]) {
             revert UsernameAlreadyTaken();
         }
-        if (msg.value< 0.01 ether){
+        if (msg.value< 0.0001 ether){
             revert InsufficientEther();
         }
         addressToPlayer[msg.sender].username = _username;

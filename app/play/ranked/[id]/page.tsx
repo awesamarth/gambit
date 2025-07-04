@@ -339,7 +339,7 @@
               {/* Main game area - board and move history side by side */}
               <div className="flex flex-col md:flex-row gap-4">
                 {/* Left side: chessboard with captured pieces */}
-                <div className="flex flex-col flex-grow">
+                <div className="flex flex-col flex-grow max-w-[555px] mx-auto">
                   {/* Opponent's captured pieces (top) */}
                   <div className="mb-3 bg-[#3B2A0A] p-3 rounded-md border border-[#B88A24]">
                     <div className="captured-pieces">

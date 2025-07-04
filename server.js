@@ -3,7 +3,7 @@ import next from "next";
 import { Server } from "socket.io";
 import { http, publicActions, verifyMessage } from "viem";
 import { createWalletClient, createPublicClient } from "viem";
-import { foundry, scrollSepolia } from "viem/chains";
+import { foundry, scrollSepolia, riseTestnet } from "viem/chains";
 import { privateKeyToAccount } from "viem/accounts";
 
 import * as dotenv from 'dotenv'
