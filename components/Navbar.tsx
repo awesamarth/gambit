@@ -56,12 +56,12 @@ export default function Navbar() {
     Play
   </Link>
 
-  <Link
+  {/* <Link
     href="/leaderboard"
     className="px-6 py-1 rounded-md text-white text-xl"
   >
     Leaderboard
-  </Link>
+  </Link> */}
 
   <Link
     href="/buy"
