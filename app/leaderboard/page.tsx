@@ -1,7 +1,7 @@
 export default function Leaderboard() {
     return (
       <div className="min-h-screen bg-gradient-to-b from-[#594205] to-[#352702] text-white flex items-center justify-center pt-12">
-        <div className="container max-w-4xl px-4 py-8">
+      <div className="container max-w-4xl px-4 py-16">
           <div className="flex flex-col items-center">
             <div className="text-6xl mb-6">🏆</div>
             <h1 className="text-4xl font-bold mb-8 text-center text-amber-300 tracking-wide">

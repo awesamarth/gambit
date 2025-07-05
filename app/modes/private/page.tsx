@@ -94,7 +94,7 @@ export default function PrivateRoom() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b pt-12 from-[#594205] to-[#352702] text-white flex items-center justify-center">
-      <div className="container max-w-4xl px-4 py-8">
+      <div className="container max-w-md px-4 py-16">
         <div className="flex flex-col items-center">
           <h1 className="text-4xl font-bold mb-8 text-center text-amber-300 tracking-wide">
             Private Match
