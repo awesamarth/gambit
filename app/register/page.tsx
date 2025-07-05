@@ -1,47 +1,56 @@
 // app/register/page.tsx
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { useRouter } from 'next/navigation';
-import { useAccount, useWriteContract } from 'wagmi';
+import { useAccount, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import { GAMBIT_ABI, GAMBIT_ADDRESS } from '@/constants';
 import { parseEther } from 'viem';
 
 export default function RegisterPage() {
   const [username, setUsername] = useState('');
   const [isRegistering, setIsRegistering] = useState(false);
+  const [txHash, setTxHash] = useState<`0x${string}` | undefined>();
   const router = useRouter();
   const { address } = useAccount();
   const {writeContractAsync} = useWriteContract()
+  
+  const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({
+    hash: txHash,
+  })
 
   const handleRegister = async () => {
     if (!address || !username.trim()) return;
 
     try {
       setIsRegistering(true);
-    //   await registerPlayer();
 
-    await writeContractAsync({
-      abi:GAMBIT_ABI,
-      address:GAMBIT_ADDRESS,
-      functionName: "registerPlayer",
-      args:[username],
-      value: parseEther('0.0001')
-    })
+      const hash = await writeContractAsync({
+        abi: GAMBIT_ABI,
+        address: GAMBIT_ADDRESS,
+        functionName: "registerPlayer",
+        args: [username],
+        value: parseEther('0.0001')
+      })
 
-      // Redirect to modes page after successful registration
-      router.push('/modes');
+      setTxHash(hash);
     } catch (error) {
       console.error("Registration failed:", error);
-
-    } finally {
       setIsRegistering(false);
     }
   };
+
+  // Effect to handle successful confirmation
+  useEffect(() => {
+    if (isConfirmed) {
+      setIsRegistering(false);
+      router.push('/modes');
+    }
+  }, [isConfirmed, router]);
 
   return (
     <div className="min-h-screen bg-gradient-to-b pt-12 from-[#594205] to-[#352702] text-white flex items-center justify-center">
@@ -76,10 +85,12 @@ export default function RegisterPage() {
   
               <Button 
                 onClick={handleRegister} 
-                disabled={isRegistering || !username.trim() || !address}
+                disabled={isRegistering || isConfirming || !username.trim() || !address}
                 className="w-full py-6 text-lg font-bold bg-amber-600 hover:bg-amber-500 transition-all duration-200"
               >
-                {isRegistering ? 'Registering...' : 'Register (0.0001 ETH)'}
+                {isRegistering && !txHash ? 'Signing Transaction...' : 
+                 isConfirming ? 'Confirming Transaction...' : 
+                 'Register (0.0001 ETH)'}
               </Button>
   
               {!address && (

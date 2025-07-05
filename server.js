@@ -3,7 +3,7 @@ import next from "next";
 import { Server } from "socket.io";
 import { http, publicActions, verifyMessage } from "viem";
 import { createWalletClient, createPublicClient } from "viem";
-import { foundry, scrollSepolia, riseTestnet } from "viem/chains";
+import { foundry, riseTestnet } from "viem/chains";
 import { privateKeyToAccount } from "viem/accounts";
 
 import * as dotenv from 'dotenv'
@@ -337,8 +337,8 @@ const account = privateKeyToAccount(process.env.PRIVATE_KEY)
 
 const walletClient  = createWalletClient({
   account:account,
-  chain: scrollSepolia,
-  transport: http("https://scroll-sepolia.chainstacklabs.com"),
+  chain: riseTestnet,
+  transport: http(),
   
 }).extend(publicActions)
 

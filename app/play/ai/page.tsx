@@ -233,7 +233,7 @@ export default function AIGamePage() {
                 {/* AI's captured pieces (top) */}
                 <div className="mb-3 bg-[#3B2A0A] p-3 rounded-md border border-[#B88A24]">
                   <div className="captured-pieces">
-                    <h3 className="text-sm font-bold mb-1">AI's captures:</h3>
+                    <h3 className="text-sm font-bold mb-1">AI&apos;s captures:</h3>
                     <div className="flex space-x-2">
                       {Object.entries(capturedPieces.b).map(([piece, count]) => (
                         count > 0 ? (
