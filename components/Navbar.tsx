@@ -67,7 +67,7 @@ export default function Navbar() {
     href="/buy"
     className="px-6 py-1 rounded-md text-white text-xl"
   >
-    Buy
+    Buy Tokens
   </Link>
 
   {address ? (
